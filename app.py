@@ -10,6 +10,32 @@ from supabase import create_client, Client
 
 # Configurações iniciais
 load_dotenv()
+
+# --- BARREIRA DE SEGURANÇA (SENHA MESTRA) ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.title("🔒 Acesso Restrito")
+    st.markdown("Bem-vinda ao seu cofre de fluência. Digite a senha para entrar.")
+    
+    with st.form("login_form"):
+        pwd = st.text_input("Senha Mestra", type="password")
+        submit = st.form_submit_button("Entrar", type="primary")
+        
+        if submit:
+            # A senha padrão é feh123 se você não colocar outra
+            correct_pwd = os.getenv("APP_PASSWORD", "feh123")
+            if pwd == correct_pwd:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Senha incorreta! Invasor detectado. 🚨")
+    
+    # O comando st.stop() mata a execução do código aqui. Nada carrega embaixo.
+    st.stop()
+# --------------------------------------------
+
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 if API_KEY:
