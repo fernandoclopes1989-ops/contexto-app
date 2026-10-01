@@ -64,9 +64,7 @@ async function renderVideoCards(videos) {
       getVocabularioByVideo(video.id)
     ]);
 
-    const hasTranscriptBadge = video.has_transcript === false
-      ? `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);" title="Sem legendas no YouTube - apenas estudo manual">⚠️ Sem legenda</span>`
-      : `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" title="Legendas [CC] disponíveis para Shadowing e IA">🎧 Shadowing OK</span>`;
+    const hasTranscriptBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" title="Pronto para Shadowing e Estudo com IA">🎧 Shadowing OK</span>`;
 
     cards.push(`
       <div class="video-card" data-video-id="${video.id}" role="button" tabindex="0">

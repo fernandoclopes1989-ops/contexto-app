@@ -12,7 +12,7 @@
  */
 
 import { getVideo, getClipsByVideo, addClip, deleteClip, updateClip, getVocabularioByVideo, addVocabulario, deleteVocabulario, addRevisao, updateVideo } from '../db.js';
-import { formatTime, parseTime, showToast, escapeHtml } from '../utils.js';
+import { formatTime, parseTime, parsePastedTranscript, showToast, escapeHtml } from '../utils.js';
 import { createPlayer, destroyPlayer, play, pause, seekTo, getCurrentTime, startLoop, stopLoop, isLooping, setPlaybackRate, getPlaybackRate, getLoopConfig, setCaptionsLanguage } from '../youtube.js';
 import { createReviewCard } from '../srs.js';
 
@@ -173,16 +173,57 @@ export async function renderVideoPlayer(container, params) {
           <span style="font-size: 2rem;">🗣️</span>
           <div>
             <h3 style="margin: 0;">Trechos Curtos para Shadowing (3 a 10s)</h3>
-            <p class="text-muted text-sm" style="margin: var(--space-1) 0 0;">A IA identifica frases curtas ideais para ouvir em loop contínuo e repetir em voz alta, imitando o ritmo e a entonação nativa.</p>
+            <p class="text-muted text-sm" style="margin: var(--space-1) 0 0;">Frases ideais para ouvir em loop contínuo e repetir em voz alta, imitando o ritmo e entonação nativa.</p>
+          </div>
+        </div>
+
+        <div id="transcript-saved-status" class="mb-3 hidden">
+          <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; font-size: 12px;">
+            ✅ Legenda oficial salva neste vídeo (<span id="transcript-lines-count">0</span> falas sincronizadas)
+          </span>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;" class="mb-3">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label for="segments-count-select" class="text-xs text-muted" style="font-weight: 500;">Qtd:</label>
+            <select id="segments-count-select" class="input" style="padding: 4px 8px; height: 38px; font-size: 13px; width: 120px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+              <option value="5">5 trechos</option>
+              <option value="8" selected>8 trechos</option>
+              <option value="12">12 trechos</option>
+              <option value="16">16 trechos</option>
+              <option value="20">20 trechos</option>
+            </select>
+          </div>
+
+          <button id="btn-detect-segments" class="btn btn-primary" style="height: 38px;">
+            🗣️ Detectar trechos com IA
+          </button>
+
+          <button id="btn-toggle-paste-transcript" class="btn btn-secondary" style="height: 38px;" title="Colar a transcrição oficial do YouTube para ter sincronia 100% perfeita">
+            📋 Colar Legenda do YouTube
+          </button>
+        </div>
+
+        <!-- Box para colar legenda do YouTube -->
+        <div id="paste-transcript-box" class="hidden mt-3" style="background: var(--bg-card); padding: var(--space-4); border-radius: var(--radius-md); border: 1px dashed var(--accent-secondary);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="font-size: 13px; color: var(--text-primary);">📋 Colar Transcrição do YouTube (Sincronia 100% Exata)</strong>
+            <button id="btn-close-paste-box" class="btn btn-ghost btn-sm" style="padding: 2px 8px;">✕</button>
+          </div>
+          <p class="text-xs text-muted mb-2" style="line-height: 1.4;">
+            1. No YouTube, clique em <strong>...</strong> abaixo do vídeo e escolha <strong>"Mostrar transcrição"</strong>.<br>
+            2. Selecione e copie o texto e cole abaixo (com ou sem os tempos <em>0:01, 0:04...</em>).<br>
+            3. A IA fatiará os loops nos <strong>segundos 100% exatos</strong> da fala!
+          </p>
+          <textarea id="pasted-transcript-input" class="input" rows="4" placeholder="Cole aqui a transcrição copiada do YouTube...&#10;0:01 Actually, I have a hole in my head&#10;0:04 Wait a minute, let me see&#10;0:08 You can feel it right here..." style="font-family: monospace; font-size: 12px; width: 100%; margin-bottom: 10px;"></textarea>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button id="btn-cancel-paste-transcript" class="btn btn-ghost btn-sm">Cancelar</button>
+            <button id="btn-process-pasted-transcript" class="btn btn-primary btn-sm">🚀 Fatiar com Timestamps Exatos</button>
           </div>
         </div>
         
-        <button id="btn-detect-segments" class="btn btn-primary btn-lg" style="width: 100%; max-width: 360px;">
-          🗣️ Detectar trechos para Shadowing
-        </button>
-        
         <div id="segments-loading" class="hidden mt-4 text-sm" style="color: var(--accent-secondary);">
-          ⏳ A IA está identificando trechos curtos para shadowing... (5-10s)
+          ⏳ A IA está analisando a fala e separando os trechos ideais... (3-7s)
         </div>
       </div>
       
@@ -316,10 +357,17 @@ function renderVocabItem(vocab) {
 }
 
 function renderAISegmentItem(segment, index) {
+  const syncBadge = segment.is_exact 
+    ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 11px; padding: 2px 6px; border: 1px solid rgba(16, 185, 129, 0.3);" title="Extraído diretamente da legenda oficial do YouTube com timestamps exatos">🎯 Sincronizado</span>`
+    : `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 11px; padding: 2px 6px; border: 1px solid rgba(245, 158, 11, 0.3);" title="Timestamps estimados por IA">✨ Sugerido por IA</span>`;
+
   return `
     <div class="clip-item ai-segment-item" data-segment-index="${index}">
       <div style="flex: 1;">
-        <div class="clip-name" style="color: var(--accent-secondary);">🎧 ${escapeHtml(segment.title)}</div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span class="clip-name" style="color: var(--accent-secondary); font-weight: 600;">🎧 ${escapeHtml(segment.title)}</span>
+          ${syncBadge}
+        </div>
         <div class="text-sm text-muted mt-1">${escapeHtml(segment.reason)}</div>
         <div class="clip-time mt-1">${formatTime(segment.start_seconds)} → ${formatTime(segment.end_seconds)}</div>
       </div>
@@ -510,7 +558,7 @@ function setupVideoPlayerListeners(container, videoId) {
     });
   });
 
-  // AI Detect Segments Button (NEW!)
+  // AI Detect Segments Button
   const btnDetectSegments = container.querySelector('#btn-detect-segments');
   if (btnDetectSegments) {
     btnDetectSegments.addEventListener('click', async () => {
@@ -519,19 +567,20 @@ function setupVideoPlayerListeners(container, videoId) {
       document.getElementById('ai-segments-list').classList.add('hidden');
       
       try {
+        const countSelect = document.getElementById('segments-count-select');
+        const count = countSelect ? parseInt(countSelect.value, 10) : 8;
+
         const { detectUsefulSegments } = await import('../ai.js');
-        const segments = await detectUsefulSegments(currentVideoData.youtube_video_id, currentVideoData.titulo);
+        const segments = await detectUsefulSegments(currentVideoData.youtube_video_id, currentVideoData.titulo, null, count);
         
-        if (currentVideoData.has_transcript !== true) {
-          currentVideoData.has_transcript = true;
-          try { await updateVideo(currentVideoData); } catch (e) {}
-        }
+        currentVideoData.has_transcript = true;
+        try { await updateVideo(currentVideoData); } catch (e) {}
         
         const segmentsList = document.getElementById('ai-segments-list');
         
-        if (segments.length === 0) {
+        if (!segments || segments.length === 0) {
           segmentsList.innerHTML = `<div class="text-center text-muted text-sm" style="padding: var(--space-6);">
-            A IA não encontrou trechos relevantes. Tente com outro vídeo.
+            Nenhum trecho gerado. Tente novamente em instantes.
           </div>`;
         } else {
           segmentsList.innerHTML = segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
@@ -541,17 +590,109 @@ function setupVideoPlayerListeners(container, videoId) {
         }
         
         segmentsList.classList.remove('hidden');
-        showToast(`${segments.length} trechos úteis encontrados! 🎧`, 'success');
+        showToast(`${segments.length} trechos prontos para Shadowing! 🎧`, 'success');
         
       } catch (err) {
-        console.error(err);
-        if (err?.message === 'TRANSCRIPT_UNAVAILABLE') {
-          currentVideoData.has_transcript = false;
-          try { await updateVideo(currentVideoData); } catch (e) {}
-        }
+        console.error('Shadowing detection error:', err);
         handleAIError(err);
       } finally {
         btnDetectSegments.disabled = false;
+        document.getElementById('segments-loading').classList.add('hidden');
+      }
+    });
+  }
+
+  // Update transcript saved status UI
+  const updateTranscriptStatusUI = async () => {
+    try {
+      const { loadVideoTranscript } = await import('../ai.js');
+      const saved = loadVideoTranscript(currentVideoData.youtube_video_id);
+      const statusDiv = document.getElementById('transcript-saved-status');
+      const countSpan = document.getElementById('transcript-lines-count');
+      if (statusDiv && countSpan) {
+        if (saved && saved.length > 0) {
+          countSpan.textContent = saved.length;
+          statusDiv.classList.remove('hidden');
+        } else {
+          statusDiv.classList.add('hidden');
+        }
+      }
+    } catch (e) {}
+  };
+  updateTranscriptStatusUI();
+
+  // Paste Transcript Box Actions
+  const btnTogglePaste = container.querySelector('#btn-toggle-paste-transcript');
+  const pasteBox = container.querySelector('#paste-transcript-box');
+  const btnClosePaste = container.querySelector('#btn-close-paste-box');
+  const btnCancelPaste = container.querySelector('#btn-cancel-paste-transcript');
+  const btnProcessPaste = container.querySelector('#btn-process-pasted-transcript');
+  const pastedInput = container.querySelector('#pasted-transcript-input');
+
+  if (btnTogglePaste && pasteBox) {
+    btnTogglePaste.addEventListener('click', () => {
+      pasteBox.classList.toggle('hidden');
+      if (!pasteBox.classList.contains('hidden') && pastedInput) {
+        pastedInput.focus();
+      }
+    });
+  }
+  if (btnClosePaste && pasteBox) {
+    btnClosePaste.addEventListener('click', () => pasteBox.classList.add('hidden'));
+  }
+  if (btnCancelPaste && pasteBox) {
+    btnCancelPaste.addEventListener('click', () => pasteBox.classList.add('hidden'));
+  }
+
+  if (btnProcessPaste && pastedInput) {
+    btnProcessPaste.addEventListener('click', async () => {
+      const rawText = pastedInput.value.trim();
+      if (!rawText) {
+        showToast('Cole o texto da transcrição na caixa antes de continuar!', 'info');
+        return;
+      }
+
+      btnProcessPaste.disabled = true;
+      btnProcessPaste.textContent = '⏳ Fatiando falas...';
+      document.getElementById('segments-loading').classList.remove('hidden');
+      document.getElementById('ai-segments-list').classList.add('hidden');
+
+      try {
+        const parsed = parsePastedTranscript(rawText);
+        if (!parsed || parsed.length === 0) {
+          showToast('Não foi possível identificar timestamps. Certifique-se de copiar a transcrição do YouTube.', 'error');
+          return;
+        }
+
+        const { saveVideoTranscript, detectUsefulSegments } = await import('../ai.js');
+        saveVideoTranscript(currentVideoData.youtube_video_id, parsed);
+        updateTranscriptStatusUI();
+        pasteBox.classList.add('hidden');
+
+        const countSelect = document.getElementById('segments-count-select');
+        const count = countSelect ? parseInt(countSelect.value, 10) : 8;
+
+        const segments = await detectUsefulSegments(currentVideoData.youtube_video_id, currentVideoData.titulo, parsed, count);
+
+        currentVideoData.has_transcript = true;
+        try { await updateVideo(currentVideoData); } catch (e) {}
+
+        const segmentsList = document.getElementById('ai-segments-list');
+        if (!segments || segments.length === 0) {
+          segmentsList.innerHTML = `<div class="text-center text-muted text-sm" style="padding: var(--space-6);">Nenhum trecho gerado. Tente novamente.</div>`;
+        } else {
+          segmentsList.innerHTML = segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
+          segmentsList._segments = segments;
+        }
+
+        segmentsList.classList.remove('hidden');
+        showToast(`🎉 ${segments.length} trechos fatiados com sincronia 100% exata da legenda!`, 'success');
+      } catch (err) {
+        console.error('Error processing pasted transcript:', err);
+        handleAIError(err);
+      } finally {
+        btnProcessPaste.disabled = false;
+        btnProcessPaste.textContent = '🚀 Fatiar com Timestamps Exatos';
         document.getElementById('segments-loading').classList.add('hidden');
       }
     });
@@ -568,16 +709,15 @@ function setupVideoPlayerListeners(container, videoId) {
       try {
         const { extractVocabFromTranscript, generateIPlusOneAnalysis, fetchTranscriptText } = await import('../ai.js');
         
-        // Try to get a real transcript
+        // Try to get a real transcript or use video title
         let transcript = '';
         try {
           transcript = await fetchTranscriptText(currentVideoData.youtube_video_id);
         } catch (e) {
-          console.warn('Could not fetch transcript, using video title as fallback');
-          transcript = `Video title: ${currentVideoData.titulo}. This is a video about learning English. The speaker discusses common expressions and phrasal verbs used in everyday conversation.`;
+          transcript = '';
         }
         
-        const extracted = await extractVocabFromTranscript(transcript);
+        const extracted = await extractVocabFromTranscript(transcript, currentVideoData.titulo);
         
         const resultsList = document.getElementById('ai-results-list');
         resultsList.innerHTML = ''; // clear
@@ -590,11 +730,11 @@ function setupVideoPlayerListeners(container, videoId) {
            const itemHtml = document.createElement('div');
            itemHtml.className = 'vocab-item';
            itemHtml.innerHTML = `
-             <div class="vocab-word">✨ ${escapeHtml(item.word_or_expression)} <span class="text-xs" style="color: var(--accent-secondary);">(${escapeHtml(analysis.type)})</span></div>
+             <div class="vocab-word">✨ ${escapeHtml(item.word_or_expression)} <span class="text-xs" style="color: var(--accent-secondary);">(${escapeHtml(analysis.type || 'chunk')})</span></div>
              <div class="vocab-context mt-2"><strong>🎬 Do vídeo:</strong> "${escapeHtml(item.original_context)}"</div>
-             <div class="vocab-context mt-1"><strong>📖 Significado (i+1):</strong> ${escapeHtml(analysis.definition_en)}</div>
-             <div class="vocab-context mt-1"><strong>🧠 Exemplo (i+1):</strong> "${escapeHtml(analysis.i_plus_one_example)}"</div>
-             <div class="vocab-context mt-1 text-xs">⚠️ <strong>Dica Br:</strong> ${escapeHtml(analysis.brazilian_trap)}</div>
+             <div class="vocab-context mt-1"><strong>📖 Significado (i+1):</strong> ${escapeHtml(analysis.definition_en || '')}</div>
+             <div class="vocab-context mt-1"><strong>🧠 Exemplo (i+1):</strong> "${escapeHtml(analysis.i_plus_one_example || '')}"</div>
+             <div class="vocab-context mt-1 text-xs">⚠️ <strong>Dica Br:</strong> ${escapeHtml(analysis.brazilian_trap || '')}</div>
              <button class="btn btn-secondary btn-sm mt-3 w-100 btn-save-ai-item">✅ Salvar no meu Deck</button>
            `;
            
@@ -632,7 +772,7 @@ function setupVideoPlayerListeners(container, videoId) {
         showToast('Análise de IA concluída!', 'success');
         
       } catch (err) {
-        console.error(err);
+        console.error('AI Study generation error:', err);
         handleAIError(err);
       } finally {
         btnGenerateAi.disabled = false;
@@ -902,8 +1042,6 @@ function handleAIError(err) {
     errorMsg = '🔑 Configure sua chave do Gemini nas Configurações!';
   } else if (err?.message === 'SERVER_OVERLOADED' || msg.includes('503')) {
     errorMsg = '⚡ Servidores do Gemini momentaneamente sobrecarregados (Erro 503). Tente novamente em alguns segundos.';
-  } else if (err?.message === 'TRANSCRIPT_UNAVAILABLE') {
-    errorMsg = '🎬 Este vídeo não possui legendas disponíveis no YouTube para análise de Shadowing.';
   } else if (err?.message) {
     errorMsg = `⚠️ Erro na IA: ${err.message}`;
   }

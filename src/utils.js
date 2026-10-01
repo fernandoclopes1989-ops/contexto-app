@@ -62,6 +62,69 @@ export function parseTime(timeStr) {
 }
 
 /**
+ * Parse raw text pasted from YouTube "Mostrar transcrição", SRT, VTT, or timestamps.
+ * Handles both alternating lines (0:01 \n text) and inline (0:01 text).
+ * Returns array of { start: number, duration: number, text: string }.
+ */
+export function parsePastedTranscript(rawText) {
+  if (!rawText || typeof rawText !== 'string') return [];
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const items = [];
+  const timeRegex = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:[.,]\d+)?$/;
+  const lineWithTimeRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:[.,]\d+)?(?:\])?\s+(.+)$/;
+
+  let lastTime = null;
+  let accumulatedText = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Check if line is just a timestamp
+    const matchJustTime = line.match(timeRegex);
+    if (matchJustTime) {
+      if (lastTime !== null && accumulatedText.length > 0) {
+        items.push({ start: lastTime, duration: 0, text: accumulatedText.join(' ') });
+        accumulatedText = [];
+      }
+      lastTime = parseTime(line);
+      continue;
+    }
+
+    // Check if line starts with timestamp: "0:04 Text here"
+    const matchLineTime = line.match(lineWithTimeRegex);
+    if (matchLineTime) {
+      if (lastTime !== null && accumulatedText.length > 0) {
+        items.push({ start: lastTime, duration: 0, text: accumulatedText.join(' ') });
+        accumulatedText = [];
+      }
+      const textContent = matchLineTime[matchLineTime.length - 1];
+      const timePart = line.replace(textContent, '').trim().replace(/[\[\]]/g, '');
+      lastTime = parseTime(timePart);
+      accumulatedText.push(textContent);
+      continue;
+    }
+
+    accumulatedText.push(line);
+  }
+
+  if (lastTime !== null && accumulatedText.length > 0) {
+    items.push({ start: lastTime, duration: 0, text: accumulatedText.join(' ') });
+  }
+
+  // Calculate durations from difference between timestamps
+  for (let i = 0; i < items.length; i++) {
+    if (i < items.length - 1) {
+      const diff = items[i + 1].start - items[i].start;
+      items[i].duration = diff > 0 && diff < 30 ? diff : 4;
+    } else {
+      items[i].duration = 4;
+    }
+  }
+
+  return items;
+}
+
+/**
  * Format a date string for display.
  */
 export function formatDate(dateStr) {
