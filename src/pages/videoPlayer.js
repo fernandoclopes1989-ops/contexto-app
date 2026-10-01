@@ -177,19 +177,9 @@ export async function renderVideoPlayer(container, params) {
           </div>
         </div>
         
-        ${currentVideoData.has_transcript === false ? `
-          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #fca5a5; text-align: left;">
-            <span style="font-size: 1.2rem; line-height: 1;">⚠️</span>
-            <div>
-              <strong>Vídeo sem legendas [CC] disponíveis no YouTube:</strong><br>
-              A detecção automática de Shadowing precisa de legendas reais no YouTube para sincronizar o áudio com precisão de segundos. Você pode criar e praticar trechos livremente de forma manual na aba <strong>✂️ Trechos</strong>.
-            </div>
-          </div>
-        ` : `
-          <button id="btn-detect-segments" class="btn btn-primary btn-lg" style="width: 100%; max-width: 360px;">
-            🗣️ Detectar trechos para Shadowing
-          </button>
-        `}
+        <button id="btn-detect-segments" class="btn btn-primary btn-lg" style="width: 100%; max-width: 360px;">
+          🗣️ Detectar trechos para Shadowing
+        </button>
         
         <div id="segments-loading" class="hidden mt-4 text-sm" style="color: var(--accent-secondary);">
           ⏳ A IA está identificando trechos curtos para shadowing... (5-10s)
@@ -206,19 +196,9 @@ export async function renderVideoPlayer(container, params) {
         <h3 style="margin-bottom: var(--space-2);">Estudo Mágico 1+1</h3>
         <p class="text-muted text-sm" style="margin-bottom: var(--space-6);">A IA vai ler a transcrição deste vídeo, extrair as melhores expressões, e gerar cards no nível 1+1 (definições fáceis e novos exemplos).</p>
         
-        ${currentVideoData.has_transcript === false ? `
-          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); display: inline-flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #fca5a5; text-align: left; max-width: 500px;">
-            <span style="font-size: 1.2rem; line-height: 1;">⚠️</span>
-            <div>
-              <strong>Vídeo sem legendas [CC] no YouTube:</strong><br>
-              A extração de vocabulário via IA precisa de legendas no YouTube. Você pode adicionar suas próprias palavras e frases na aba <strong>📝 Vocabulário</strong>.
-            </div>
-          </div>
-        ` : `
-          <button id="btn-generate-ai-study" class="btn btn-primary btn-lg" style="width: 100%; max-width: 300px; margin: 0 auto;">
-            ✨ Extrair e Gerar com IA
-          </button>
-        `}
+        <button id="btn-generate-ai-study" class="btn btn-primary btn-lg" style="width: 100%; max-width: 300px; margin: 0 auto;">
+          ✨ Extrair e Gerar com IA
+        </button>
         
         <div id="ai-loading-indicator" class="hidden mt-4 text-sm" style="color: var(--accent-primary);">
           ⏳ A IA está assistindo o vídeo e separando o material... (pode levar 10-15s)

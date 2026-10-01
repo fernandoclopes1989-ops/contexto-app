@@ -139,47 +139,21 @@ async function handleAddVideo(input) {
     return;
   }
 
-  // Fetch title & validate subtitles
+  // Fetch title
   const addBtn = document.getElementById('add-video-btn');
-  addBtn.textContent = '⏳ Validando vídeo e legendas...';
+  addBtn.textContent = 'Adicionando...';
   addBtn.disabled = true;
 
   try {
-    const { fetchTranscriptTimed } = await import('../ai.js');
-
-    const [titulo, timedTranscript] = await Promise.all([
-      fetchVideoTitle(videoId),
-      fetchTranscriptTimed(videoId).catch(() => null)
-    ]);
-
-    const hasTranscript = Array.isArray(timedTranscript) && timedTranscript.length > 0;
-
-    if (!hasTranscript) {
-      const proceed = confirm(
-        '⚠️ AVISO SOBRE AS LEGENDAS:\n\n' +
-        'Este vídeo NÃO possui legendas/transcrição disponíveis no YouTube.\n\n' +
-        '• Você poderá assistir ao vídeo normalmente e marcar loops manuais na aba "Trechos".\n' +
-        '• Porém, as funções automáticas de "Shadowing com IA" e "Cards 1+1" precisam de vídeos com legendas [CC] no YouTube.\n\n' +
-        'Deseja adicionar este vídeo mesmo assim?'
-      );
-
-      if (!proceed) {
-        return;
-      }
-    }
+    const titulo = await fetchVideoTitle(videoId);
 
     const id = await addVideo({
       youtube_video_id: videoId,
       titulo: titulo,
-      has_transcript: hasTranscript,
       data_adicionado: new Date().toISOString()
     });
 
-    if (hasTranscript) {
-      showToast('Vídeo validado e adicionado com legendas prontas para IA! 🎉🎧', 'success');
-    } else {
-      showToast('Vídeo adicionado (apenas modo estudo manual)! 📺', 'info');
-    }
+    showToast('Vídeo adicionado com sucesso! 🎉', 'success');
     input.value = '';
     navigate(`/video/${id}`);
   } catch (err) {
