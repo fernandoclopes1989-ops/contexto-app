@@ -16,6 +16,8 @@ import { formatTime, parseTime, parsePastedTranscript, showToast, escapeHtml } f
 import { createPlayer, destroyPlayer, play, pause, seekTo, getCurrentTime, startLoop, stopLoop, isLooping, setPlaybackRate, getPlaybackRate, getLoopConfig, setCaptionsLanguage } from '../youtube.js';
 import { createReviewCard } from '../srs.js';
 import { openTranscriptModal } from '../components/transcriptModal.js';
+import { openQuickCaptureModal } from '../components/quickCaptureModal.js';
+import { generateIPlusOneCardData, speakEnglish } from '../services/quickCardService.js';
 
 let currentVideoData = null;
 let activeClipId = null;
@@ -143,9 +145,19 @@ export async function renderVideoPlayer(container, params) {
     <div id="tab-vocab" class="tab-content hidden">
       <!-- Add Vocab Form -->
       <div class="vocab-form" id="vocab-form">
-        <div class="section-title" style="margin-bottom: var(--space-4);">💡 Salvar palavra ou expressão</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); flex-wrap: wrap; gap: 8px;">
+          <div class="section-title" style="margin: 0;">💡 Salvar palavra ou expressão</div>
+          <button type="button" id="btn-player-quick-i1-modal" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 4px;">
+            <span>⚡</span> <span>Captura Rápida i+1</span>
+          </button>
+        </div>
         <div class="input-group">
-          <label class="input-label" for="vocab-word">Palavra / Expressão em inglês</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label class="input-label" for="vocab-word" style="margin: 0;">Palavra / Expressão em inglês</label>
+            <button type="button" id="btn-player-auto-fill-i1" class="btn btn-ghost btn-sm" style="font-size: 11px; padding: 2px 6px; color: var(--accent-secondary);" title="Auto-preencher definição EN-EN e frase i+1">
+              ⚡ Auto-Preencher i+1
+            </button>
+          </div>
           <input type="text" id="vocab-word" class="input" placeholder="Ex: take off, nevertheless, figure out..." />
         </div>
         <div class="input-group">
@@ -153,9 +165,9 @@ export async function renderVideoPlayer(container, params) {
           <textarea id="vocab-context" class="input" placeholder="Ex: You need to figure out what works best for you."></textarea>
         </div>
         <div class="input-group">
-          <label class="input-label" for="vocab-meaning">Tradução / Significado</label>
+          <label class="input-label" for="vocab-meaning">Definição / Significado (Inglês ou Português)</label>
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="vocab-meaning" class="input" placeholder="Ex: descobrir, resolver, entender" style="flex: 1;" />
+            <input type="text" id="vocab-meaning" class="input" placeholder="Ex: To discover or understand something..." style="flex: 1;" />
             <button type="button" id="btn-ai-translate" class="btn btn-secondary" style="padding: 0 12px; height: 44px; white-space: nowrap;" title="Gerar tradução com IA">✨ Traduzir</button>
           </div>
         </div>
@@ -510,6 +522,67 @@ function setupVideoPlayerListeners(container, videoId) {
       } finally {
         aiTranslateBtn.disabled = false;
         aiTranslateBtn.textContent = '✨ Traduzir';
+      }
+    });
+  }
+
+  // Quick Capture Modal button inside player
+  const btnPlayerQcModal = container.querySelector('#btn-player-quick-i1-modal');
+  if (btnPlayerQcModal) {
+    btnPlayerQcModal.addEventListener('click', () => {
+      const currentWord = document.getElementById('vocab-word')?.value.trim() || '';
+      const currentContext = document.getElementById('vocab-context')?.value.trim() || '';
+      openQuickCaptureModal({
+        initialWord: currentWord,
+        initialContext: currentContext,
+        videoId: videoId,
+        onSaved: () => {
+          refreshVocabList(videoId);
+          refreshTabCounts(videoId);
+          if (document.getElementById('vocab-word')) document.getElementById('vocab-word').value = '';
+          if (document.getElementById('vocab-context')) document.getElementById('vocab-context').value = '';
+          if (document.getElementById('vocab-meaning')) document.getElementById('vocab-meaning').value = '';
+        }
+      });
+    });
+  }
+
+  // Auto-fill i+1 directly in the inline form
+  const btnPlayerAutoI1 = container.querySelector('#btn-player-auto-fill-i1');
+  if (btnPlayerAutoI1) {
+    btnPlayerAutoI1.addEventListener('click', async () => {
+      const wordInput = document.getElementById('vocab-word');
+      const contextInput = document.getElementById('vocab-context');
+      const meaningInput = document.getElementById('vocab-meaning');
+      const word = wordInput?.value.trim();
+
+      if (!word) {
+        showToast('Digite a palavra ou expressão primeiro!', 'info');
+        wordInput?.focus();
+        return;
+      }
+
+      btnPlayerAutoI1.disabled = true;
+      btnPlayerAutoI1.textContent = '⏳ Gerando i+1...';
+
+      try {
+        const cardData = await generateIPlusOneCardData(word, contextInput?.value.trim() || '');
+        if (cardData) {
+          if (meaningInput) {
+            meaningInput.value = cardData.definition_en + (cardData.pt_hint ? `\n💡 Dica: ${cardData.pt_hint}` : '');
+          }
+          if (contextInput && !contextInput.value.trim() && cardData.sentence_i_plus_one) {
+            contextInput.value = cardData.sentence_i_plus_one;
+          }
+          speakEnglish(word);
+          showToast(`⚡ Definição e frase i+1 preenchidas! (${cardData.source === 'dictionary' ? '0 tokens' : 'IA i+1'})`, 'success');
+        }
+      } catch (err) {
+        console.error('Error auto-filling i+1:', err);
+        showToast('Erro ao gerar i+1: ' + (err?.message || ''), 'error');
+      } finally {
+        btnPlayerAutoI1.disabled = false;
+        btnPlayerAutoI1.textContent = '⚡ Auto-Preencher i+1';
       }
     });
   }

@@ -5,6 +5,7 @@
 import { getAllVocabulario, getVideo, getAllRevisao, deleteVocabulario, deleteRevisao } from '../db.js';
 import { formatDate, formatTime, escapeHtml, showToast, debounce } from '../utils.js';
 import { getDifficultyBadge, getNextReviewLabel } from '../srs.js';
+import { openQuickCaptureModal } from '../components/quickCaptureModal.js';
 
 export async function renderVocabulary(container) {
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
@@ -29,9 +30,14 @@ export async function renderVocabulary(container) {
   const sorted = [...vocab].sort((a, b) => new Date(b.data_criacao) - new Date(a.data_criacao));
 
   container.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">📝 Vocabulário</h1>
-      <p class="page-subtitle">${vocab.length} palavra${vocab.length !== 1 ? 's' : ''} salva${vocab.length !== 1 ? 's' : ''}</p>
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h1 class="page-title" style="margin: 0;">📝 Vocabulário</h1>
+        <p class="page-subtitle">${vocab.length} palavra${vocab.length !== 1 ? 's' : ''} salva${vocab.length !== 1 ? 's' : ''}</p>
+      </div>
+      <button id="btn-vocab-page-quick-capture" class="btn btn-primary" style="display: flex; align-items: center; gap: 6px;">
+        <span>⚡</span> <span>Captura Rápida i+1</span>
+      </button>
     </div>
 
     <!-- Filter -->
@@ -56,6 +62,16 @@ export async function renderVocabulary(container) {
       ` : sorted.map(v => renderFullVocabItem(v, reviewMap[v.id], videoCache[v.video_id])).join('')}
     </div>
   `;
+
+  // Quick capture button
+  const btnQc = container.querySelector('#btn-vocab-page-quick-capture');
+  if (btnQc) {
+    btnQc.addEventListener('click', () => {
+      openQuickCaptureModal({
+        onSaved: () => renderVocabulary(container)
+      });
+    });
+  }
 
   // Search filter
   const searchInput = container.querySelector('#vocab-search');

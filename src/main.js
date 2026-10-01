@@ -13,6 +13,7 @@ import { renderPractice } from './pages/practice.js';
 import { renderSettings } from './pages/settings.js';
 import { getDueReviewCount, getStudyStreak } from './db.js';
 import { destroyPlayer } from './youtube.js';
+import { openQuickCaptureModal } from './components/quickCaptureModal.js';
 
 // --- Register Routes ---
 
@@ -133,6 +134,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMobileMenu();
   updateGlobalUI();
   initRouter();
+
+  // Global Quick Capture buttons (Sidebar & Mobile Header)
+  const handleQuickCapture = () => {
+    openQuickCaptureModal({
+      onSaved: () => {
+        updateGlobalUI();
+        // If on vocabulary page, re-render
+        if (window.location.hash.startsWith('#/vocabulary')) {
+          const container = document.getElementById('page-container');
+          if (container) renderVocabulary(container);
+        }
+      }
+    });
+  };
+
+  const btnGlobalQc = document.getElementById('btn-global-quick-capture');
+  const btnMobileQc = document.getElementById('btn-mobile-quick-capture');
+  if (btnGlobalQc) btnGlobalQc.addEventListener('click', handleQuickCapture);
+  if (btnMobileQc) btnMobileQc.addEventListener('click', handleQuickCapture);
 
   // Update global UI periodically (every 60 seconds)
   setInterval(updateGlobalUI, 60000);

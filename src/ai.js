@@ -56,7 +56,7 @@ async function getApiKeySegura() {
 /**
  * Helper to call Gemini REST API with automatic model fallback
  */
-async function callGemini(prompt, systemInstruction = '') {
+export async function callGemini(prompt, systemInstruction = '') {
   let apiKey = await getApiKeySegura();
 
   if (!apiKey) {
