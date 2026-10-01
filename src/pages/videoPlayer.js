@@ -880,15 +880,23 @@ function setupVideoPlayerListeners(container, videoId) {
 }
 
 function handleAIError(err) {
-  let errorMsg = 'Erro na IA. Verifique sua chave nas configurações.';
-  if (err.message === 'API_KEY_RESTRICTED') {
-    errorMsg = '🔒 Chave de API rejeitada. Acesse aistudio.google.com/app/apikey, clique na sua chave e selecione "Restrict to Gemini API only". Ou delete e crie uma nova.';
-  } else if (err.message === 'API_KEY_INVALID') {
-    errorMsg = 'Chave de API inválida. Verifique nas configurações.';
-  } else if (err.message === 'RATE_LIMIT') {
-    errorMsg = '⏳ Limite atingido. Aguarde 1 minuto e tente novamente.';
-  } else if (err.message === 'API_KEY_MISSING') {
-    errorMsg = '🔑 Configure a chave da API (Google Gemini) nas Configurações!';
+  let errorMsg = '⚠️ Erro ao consultar a IA. Tente novamente.';
+  const msg = (err?.message || '').toLowerCase();
+
+  if (err?.message === 'RATE_LIMIT' || msg.includes('429') || msg.includes('quota') || msg.includes('resource_exhausted')) {
+    errorMsg = '⏳ Limite de Cota Excedido (Erro 429): Você atingiu a cota gratuita do Gemini (limite por minuto ou diário). Aguarde 1 minuto ou use uma nova chave.';
+  } else if (err?.message === 'API_KEY_INVALID' || msg.includes('401') || msg.includes('unauthenticated')) {
+    errorMsg = '🔑 Chave Inválida ou Expirada (Erro 401): Esta chave foi desativada ou não confere. Atualize-a nas Configurações.';
+  } else if (err?.message === 'API_KEY_RESTRICTED' || msg.includes('403')) {
+    errorMsg = '🔒 Chave com restrição ou bloqueada (Erro 403). Verifique no AI Studio se a chave está ativa.';
+  } else if (err?.message === 'API_KEY_MISSING') {
+    errorMsg = '🔑 Configure sua chave do Gemini nas Configurações!';
+  } else if (err?.message === 'SERVER_OVERLOADED' || msg.includes('503')) {
+    errorMsg = '⚡ Servidores do Gemini momentaneamente sobrecarregados (Erro 503). Tente novamente em alguns segundos.';
+  } else if (err?.message === 'TRANSCRIPT_UNAVAILABLE') {
+    errorMsg = '🎬 Este vídeo não possui legendas disponíveis no YouTube para análise de Shadowing.';
+  } else if (err?.message) {
+    errorMsg = `⚠️ Erro na IA: ${err.message}`;
   }
   showToast(errorMsg, 'error');
 }

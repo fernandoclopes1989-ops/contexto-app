@@ -14,16 +14,14 @@
 import { getSetting } from './db.js';
 import { shuffle } from './utils.js';
 
-export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6JdUG0itq1fsRvk7iZh5zwIKYehdBJ1WoEXhH67fR9zyg';
-export const FALLBACK_GEMINI_KEY = 'AIzaSyD23YAAAqgD5EHjy03mFp1NdxCUid3hRLc';
+export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6I_gh7GFTPCcdBch9qK7f5h6ExghJN1I9NFyTLV29CIQQ';
 
 // Models to try in order (first available wins)
-// gemini-3.5-flash and gemini-3.8-flash work on new 2026 AI Studio keys (AQ...)
 const GEMINI_MODELS = [
   'gemini-3.5-flash',
+  'gemini-3.7-flash',
   'gemini-3.8-flash',
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
+  'gemini-3.1-flash-lite',
   'gemini-flash-latest'
 ];
 
@@ -32,6 +30,13 @@ const GEMINI_MODELS = [
  */
 async function callGemini(prompt, systemInstruction = '') {
   let apiKey = await getSetting('gemini_api_key');
+  if (apiKey === 'AQ.Ab8RN6JdUG0itq1fsRvk7iZh5zwIKYehdBJ1WoEXhH67fR9zyg') {
+    apiKey = DEFAULT_GEMINI_KEY;
+    try {
+      const { setSetting } = await import('./db.js');
+      await setSetting('gemini_api_key', DEFAULT_GEMINI_KEY);
+    } catch (e) {}
+  }
   if (!apiKey || apiKey.trim() === '') {
     apiKey = DEFAULT_GEMINI_KEY;
   }
@@ -70,16 +75,24 @@ async function callGemini(prompt, systemInstruction = '') {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMsg = errorData.error?.message || '';
+        // 401 = Invalid credentials / Unauthenticated / Expired key
+        if (response.status === 401) {
+          throw new Error('API_KEY_INVALID');
+        }
 
-        // 403 = Likely unrestricted API key (rejected since June 2026)
+        // 403 = Likely unrestricted API key (rejected since June 2026) or permission denied
         if (response.status === 403) {
           throw new Error('API_KEY_RESTRICTED');
         }
 
         // 400 with API key message = Invalid key
-        if (response.status === 400 && errorMsg.toLowerCase().includes('api key')) {
+        if (response.status === 400 && (errorMsg.toLowerCase().includes('api key') || errorMsg.toLowerCase().includes('key not valid'))) {
           throw new Error('API_KEY_INVALID');
+        }
+
+        // 429 or RESOURCE_EXHAUSTED = Quota / Rate limit reached
+        if (response.status === 429 || errorMsg.toLowerCase().includes('quota') || errorMsg.toLowerCase().includes('resource_exhausted')) {
+          throw new Error('RATE_LIMIT');
         }
 
         // 404 = Model not found, try next model
@@ -92,13 +105,8 @@ async function callGemini(prompt, systemInstruction = '') {
         // 503 = Temporary overload spike, try next model
         if (response.status === 503) {
           console.warn(`Model ${model} overloaded (503), trying next...`);
-          lastError = new Error(`Model ${model} temporarily overloaded`);
+          lastError = new Error('SERVER_OVERLOADED');
           continue;
-        }
-
-        // 429 = Rate limit
-        if (response.status === 429) {
-          throw new Error('RATE_LIMIT');
         }
 
         throw new Error(`API Error: ${response.status} - ${errorMsg || 'Unknown error'}`);
@@ -278,10 +286,7 @@ Reply ONLY with the JSON array.`;
     
   } catch (error) {
     console.error('Failed to detect segments', error);
-    if (['API_KEY_MISSING', 'API_KEY_INVALID', 'API_KEY_RESTRICTED', 'RATE_LIMIT'].includes(error.message)) {
-      throw error;
-    }
-    throw new Error('AI_SEGMENT_DETECTION_FAILED');
+    throw error;
   }
 }
 

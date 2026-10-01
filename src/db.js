@@ -63,7 +63,7 @@ async function getSettingLocal(key) {
 
 export const DEFAULT_SUPABASE_URL = 'https://hgoawmblyqymoxjwiohh.supabase.co';
 export const DEFAULT_SUPABASE_KEY = 'sb_publishable_S6bd_yGFLw3YXFgWjt9Gjw_oXaB6BQ_';
-export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6JdUG0itq1fsRvk7iZh5zwIKYehdBJ1WoEXhH67fR9zyg';
+export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6I_gh7GFTPCcdBch9qK7f5h6ExghJN1I9NFyTLV29CIQQ';
 
 async function waitForSupabase(timeout = 3000) {
   const start = Date.now();

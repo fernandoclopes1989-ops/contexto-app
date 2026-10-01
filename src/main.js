@@ -113,7 +113,23 @@ async function updateGlobalUI() {
 
 // --- Initialize ---
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Migrate stale API keys immediately on startup
+  try {
+    const { getSetting, setSetting } = await import('./db.js');
+    const { DEFAULT_GEMINI_KEY } = await import('./ai.js');
+    const currentKey = await getSetting('gemini_api_key');
+    const STALE_KEYS = [
+      'AQ.Ab8RN6JdUG0itq1fsRvk7iZh5zwIKYehdBJ1WoEXhH67fR9zyg'
+    ];
+    if (currentKey && STALE_KEYS.includes(currentKey)) {
+      await setSetting('gemini_api_key', DEFAULT_GEMINI_KEY);
+      console.log('🔑 Chave Gemini antiga migrada automaticamente para a nova.');
+    }
+  } catch (e) {
+    console.warn('Key migration skipped:', e);
+  }
+
   setupMobileMenu();
   updateGlobalUI();
   initRouter();
