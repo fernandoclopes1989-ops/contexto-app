@@ -16,13 +16,13 @@ import { shuffle } from './utils.js';
 
 export const DEFAULT_GEMINI_KEY = 'AQ.Ab8RN6I_gh7GFTPCcdBch9qK7f5h6ExghJN1I9NFyTLV29CIQQ';
 
-// Models to try in order (first available wins)
+// Modelos da geração 3.x recomendados oficialmente pelo Google
 const GEMINI_MODELS = [
-  'gemini-3.5-flash',
-  'gemini-3.7-flash',
-  'gemini-3.8-flash',
-  'gemini-3.1-flash-lite',
-  'gemini-flash-latest'
+  'gemini-3.5-flash-lite',  // Recomendação oficial para novos projetos (leve, ultra-rápido, sem fila)
+  'gemini-3.5-flash',       // O mais equilibrado da geração 3
+  'gemini-3.8-flash',       // Flagship mais novo (lançado em setembro/2026)
+  'gemini-3.7-flash',       // Fallback estável
+  'gemini-flash-latest'     // Rota automática
 ];
 
 /**
