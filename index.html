@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contexto — Estudo de Inglês com Vídeos</title>
+  <meta name="description" content="Transforme qualquer vídeo do YouTube em uma sessão de estudo de inglês. Loop de trechos, vocabulário em contexto e revisão espaçada automática." />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Contexto" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./src/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    if (!window.supabase) {
+      document.write('<script src="./src/supabase.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">🎯</span>
+          <span class="logo-text">Contexto</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#/" class="nav-link active" data-route="/">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Início</span>
+        </a>
+        <a href="#/videos" class="nav-link" data-route="/videos">
+          <span class="nav-icon">🎬</span>
+          <span class="nav-label">Meus Vídeos</span>
+        </a>
+        <a href="#/review" class="nav-link" data-route="/review">
+          <span class="nav-icon">🔄</span>
+          <span class="nav-label">Revisão do Dia</span>
+          <span id="review-badge" class="nav-badge hidden">0</span>
+        </a>
+        <a href="#/vocabulary" class="nav-link" data-route="/vocabulary">
+          <span class="nav-icon">📝</span>
+          <span class="nav-label">Vocabulário</span>
+        </a>
+        <a href="#/practice" class="nav-link" data-route="/practice">
+          <span class="nav-icon">🤖</span>
+          <span class="nav-label">Quiz de Revisão</span>
+        </a>
+        <a href="#/settings" class="nav-link" data-route="/settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Configurações</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="streak-display" id="streak-display">
+          <span class="streak-flame">🔥</span>
+          <span class="streak-count" id="streak-count">0</span>
+          <span class="streak-label">dias seguidos</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+      <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="logo">
+        <span class="logo-icon">🎯</span>
+        <span class="logo-text">Contexto</span>
+      </div>
+      <div id="review-badge-mobile" class="nav-badge hidden mobile-badge">0</div>
+    </header>
+
+    <!-- Overlay for mobile menu -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <div id="page-container" class="page-container">
+        <!-- Pages rendered here by router -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Modal Container -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-content" class="modal-content"></div>
+  </div>
+
+  <script type="module" src="./src/main.js?v=3"></script>
+</body>
+</html>

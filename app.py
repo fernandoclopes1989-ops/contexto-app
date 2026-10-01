@@ -56,9 +56,9 @@ else:
 
 # Criação do Motor do Agente
 def init_agent(system_instruction):
-    # Usando gemini-2.5-flash para garantir cota alta na versão gratuita (1500 req/dia)
+    # Usando gemini-3.1-flash-lite-preview para garantir limites altos na versão gratuita
     return genai.GenerativeModel(
-        model_name='gemini-2.5-flash',
+        model_name='gemini-3.1-flash-lite-preview',
         system_instruction=system_instruction
     )
 
