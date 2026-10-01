@@ -63,52 +63,62 @@ export function parseTime(timeStr) {
 
 /**
  * Parse raw text pasted from YouTube "Mostrar transcrição", SRT, VTT, or timestamps.
- * Handles both alternating lines (0:01 \n text) and inline (0:01 text).
+ * Handles:
+ * - YouTube Brasil accessibility format: 0:000 segundo-, 0:022 segundosJackie, 0:3636 segundos-
+ * - Alternating lines (0:01 \n text) and inline (0:01 text)
+ * - Brackets [0:04], full HH:MM:SS
+ * - Pure text fallback (splits into sentences without error)
  * Returns array of { start: number, duration: number, text: string }.
  */
 export function parsePastedTranscript(rawText) {
   if (!rawText || typeof rawText !== 'string') return [];
   const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const items = [];
-  const timeRegex = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:[.,]\d+)?$/;
-  const lineWithTimeRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:[.,]\d+)?(?:\])?\s+(.+)$/;
+
+  // Match: [0:04], 0:04, 0:022 segundos, 0:3636 segundos-, 01:23:45, 0:000 segundo-
+  const timeRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\d+)?(?:[.,]\d+)?(?:\])?(?:\s*(?:segundos?|minutos?|horas?|seconds?|mins?|s)\b)?(?:\s*[-–:])?\s*(.*)$/i;
 
   let lastTime = null;
   let accumulatedText = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    const m = line.match(timeRegex);
 
-    // Check if line is just a timestamp
-    const matchJustTime = line.match(timeRegex);
-    if (matchJustTime) {
+    if (m) {
+      const h = m[1] ? parseInt(m[1], 10) : 0;
+      const min = parseInt(m[2], 10);
+      const s = parseInt(m[3], 10);
+      const seconds = h * 3600 + min * 60 + s;
+      
+      let rest = (m[4] || '').trim();
+      // Remove any lingering "segundos", "segundo-", etc. from front of rest
+      rest = rest.replace(/^(?:segundos?|minutos?|horas?|seconds?|mins?|s)[-–:\s]*/i, '').trim();
+
       if (lastTime !== null && accumulatedText.length > 0) {
-        items.push({ start: lastTime, duration: 0, text: accumulatedText.join(' ') });
+        items.push({ start: lastTime, duration: 4, text: accumulatedText.join(' ') });
         accumulatedText = [];
       }
-      lastTime = parseTime(line);
-      continue;
+      lastTime = seconds;
+      if (rest) accumulatedText.push(rest);
+    } else {
+      let cleaned = line.replace(/^(?:segundos?|minutos?|horas?|seconds?|mins?|s)[-–:\s]*/i, '').trim();
+      if (cleaned) accumulatedText.push(cleaned);
     }
-
-    // Check if line starts with timestamp: "0:04 Text here"
-    const matchLineTime = line.match(lineWithTimeRegex);
-    if (matchLineTime) {
-      if (lastTime !== null && accumulatedText.length > 0) {
-        items.push({ start: lastTime, duration: 0, text: accumulatedText.join(' ') });
-        accumulatedText = [];
-      }
-      const textContent = matchLineTime[matchLineTime.length - 1];
-      const timePart = line.replace(textContent, '').trim().replace(/[\[\]]/g, '');
-      lastTime = parseTime(timePart);
-      accumulatedText.push(textContent);
-      continue;
-    }
-
-    accumulatedText.push(line);
   }
 
   if (lastTime !== null && accumulatedText.length > 0) {
-    items.push({ start: lastTime, duration: 0, text: accumulatedText.join(' ') });
+    items.push({ start: lastTime, duration: 4, text: accumulatedText.join(' ') });
+  }
+
+  // Fallback: If no timestamps could be parsed from any line, chunk the raw text into sentences
+  if (items.length === 0) {
+    const sentences = rawText.split(/(?<=[.?!])\s+/).map(s => s.trim()).filter(s => s.length > 5);
+    let curTime = 5;
+    for (const sent of sentences) {
+      items.push({ start: curTime, duration: 5, text: sent });
+      curTime += 8;
+    }
   }
 
   // Calculate durations from difference between timestamps

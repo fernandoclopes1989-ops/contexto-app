@@ -15,6 +15,7 @@ import { getVideo, getClipsByVideo, addClip, deleteClip, updateClip, getVocabula
 import { formatTime, parseTime, parsePastedTranscript, showToast, escapeHtml } from '../utils.js';
 import { createPlayer, destroyPlayer, play, pause, seekTo, getCurrentTime, startLoop, stopLoop, isLooping, setPlaybackRate, getPlaybackRate, getLoopConfig, setCaptionsLanguage } from '../youtube.js';
 import { createReviewCard } from '../srs.js';
+import { openTranscriptModal } from '../components/transcriptModal.js';
 
 let currentVideoData = null;
 let activeClipId = null;
@@ -42,8 +43,11 @@ export async function renderVideoPlayer(container, params) {
   container.innerHTML = `
     <a href="#/videos" class="back-link">← Voltar aos vídeos</a>
 
-    <div class="page-header">
-      <h1 class="page-title" style="font-size: var(--font-xl);">${escapeHtml(currentVideoData.titulo)}</h1>
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <h1 class="page-title" style="font-size: var(--font-xl); margin: 0;">${escapeHtml(currentVideoData.titulo)}</h1>
+      <button class="btn btn-secondary btn-sm btn-trigger-transcript-modal" style="display: flex; align-items: center; gap: 6px;" title="Importar Transcrição do YouTube (Parse & Sync)">
+        <span>📋</span> <strong>Parse & Sync Transcrição</strong>
+      </button>
     </div>
 
     <!-- Player -->
@@ -116,6 +120,13 @@ export async function renderVideoPlayer(container, params) {
           <input type="text" id="clip-end" class="input" placeholder="0:30" />
         </div>
         <button id="save-clip-btn" class="btn btn-primary" style="height: 44px;">Salvar trecho</button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); margin-top: var(--space-2);">
+        <span class="text-xs text-muted">Marque pelo vídeo acima ou importe a legenda completa:</span>
+        <button class="btn btn-secondary btn-sm btn-trigger-transcript-modal" style="display: flex; align-items: center; gap: 6px;">
+          <span>📋</span> Parse & Sync Transcrição
+        </button>
       </div>
 
       <!-- Clips List -->
@@ -621,6 +632,42 @@ function setupVideoPlayerListeners(container, videoId) {
   };
   updateTranscriptStatusUI();
 
+  // Modal Component for Parse & Sync Transcripts
+  const handleOpenTranscriptModal = () => {
+    openTranscriptModal({
+      videoId,
+      youtubeVideoId: currentVideoData.youtube_video_id,
+      videoTitle: currentVideoData.titulo,
+      onClipsCreated: async (items) => {
+        currentVideoData.has_transcript = true;
+        try { await updateVideo(currentVideoData); } catch (e) {}
+
+        await refreshClipList(videoId);
+        await refreshTabCounts(videoId);
+        updateTranscriptStatusUI();
+
+        // Populate Shadowing list with exact items
+        const segmentsList = document.getElementById('ai-segments-list');
+        if (segmentsList && Array.isArray(items)) {
+          const segments = items.map((item) => ({
+            title: item.text,
+            reason: 'Trecho sincronizado via transcrição oficial do YouTube.',
+            start_seconds: item.start,
+            end_seconds: item.start + item.duration,
+            is_exact: true
+          }));
+          segmentsList.innerHTML = segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
+          segmentsList._segments = segments;
+          segmentsList.classList.remove('hidden');
+        }
+      }
+    });
+  };
+
+  container.querySelectorAll('.btn-trigger-transcript-modal').forEach(btn => {
+    btn.addEventListener('click', handleOpenTranscriptModal);
+  });
+
   // Paste Transcript Box Actions
   const btnTogglePaste = container.querySelector('#btn-toggle-paste-transcript');
   const pasteBox = container.querySelector('#paste-transcript-box');
@@ -659,14 +706,11 @@ function setupVideoPlayerListeners(container, videoId) {
 
       try {
         const parsed = parsePastedTranscript(rawText);
-        if (!parsed || parsed.length === 0) {
-          showToast('Não foi possível identificar timestamps. Certifique-se de copiar a transcrição do YouTube.', 'error');
-          return;
-        }
-
         const { saveVideoTranscript, detectUsefulSegments } = await import('../ai.js');
-        saveVideoTranscript(currentVideoData.youtube_video_id, parsed);
-        updateTranscriptStatusUI();
+        if (parsed && parsed.length > 0) {
+          saveVideoTranscript(currentVideoData.youtube_video_id, parsed);
+          updateTranscriptStatusUI();
+        }
         pasteBox.classList.add('hidden');
 
         const countSelect = document.getElementById('segments-count-select');
