@@ -26,21 +26,42 @@ const GEMINI_MODELS = [
 ];
 
 /**
+ * Pega a chave da API com segurança (sem vazar no GitHub)
+ */
+async function getApiKeySegura() {
+  // 1. Tenta pegar do banco de dados local ou do celular
+  let apiKey = localStorage.getItem('minha_chave_gemini');
+
+  if (!apiKey) {
+    try {
+      apiKey = await getSetting('gemini_api_key');
+    } catch (e) { }
+  }
+
+  // 2. Se for a primeira vez e não tiver chave salva, pergunta na tela
+  if (!apiKey || apiKey.trim() === '' || apiKey.includes('gh7GFTPCcdBch')) {
+    apiKey = prompt("🔑 Bem-vindo! Cole a sua Chave de API do Gemini aqui:");
+    if (apiKey && apiKey.trim() !== '') {
+      apiKey = apiKey.trim();
+      localStorage.setItem('minha_chave_gemini', apiKey);
+      try {
+        await setSetting('gemini_api_key', apiKey);
+      } catch (e) { }
+    }
+  }
+
+  return apiKey;
+}
+
+/**
  * Helper to call Gemini REST API with automatic model fallback
  */
 async function callGemini(prompt, systemInstruction = '') {
-  let apiKey = await getSetting('gemini_api_key');
-  if (apiKey === 'AQ.Ab8RN6JdUG0itq1fsRvk7iZh5zwIKYehdBJ1WoEXhH67fR9zyg') {
-    apiKey = DEFAULT_GEMINI_KEY;
-    try {
-      const { setSetting } = await import('./db.js');
-      await setSetting('gemini_api_key', DEFAULT_GEMINI_KEY);
-    } catch (e) {}
+  let apiKey = await getApiKeySegura();
+
+  if (!apiKey) {
+    throw new Error('API_KEY_MISSING');
   }
-  if (!apiKey || apiKey.trim() === '') {
-    apiKey = DEFAULT_GEMINI_KEY;
-  }
-  if (!apiKey) throw new Error('API_KEY_MISSING');
 
   const body = {
     contents: [{
@@ -62,7 +83,6 @@ async function callGemini(prompt, systemInstruction = '') {
   // Try each model in order until one works
   for (const model of GEMINI_MODELS) {
     try {
-      // Support both header and query param for maximum browser & proxy compatibility
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
       const response = await fetch(url, {
         method: 'POST',
@@ -75,18 +95,22 @@ async function callGemini(prompt, systemInstruction = '') {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData?.error?.message || '';
+
         // 401 = Invalid credentials / Unauthenticated / Expired key
         if (response.status === 401) {
+          localStorage.removeItem('minha_chave_gemini'); // Limpa a chave inválida para pedir outra
           throw new Error('API_KEY_INVALID');
         }
 
-        // 403 = Likely unrestricted API key (rejected since June 2026) or permission denied
+        // 403 = Likely unrestricted API key or permission denied
         if (response.status === 403) {
           throw new Error('API_KEY_RESTRICTED');
         }
 
         // 400 with API key message = Invalid key
         if (response.status === 400 && (errorMsg.toLowerCase().includes('api key') || errorMsg.toLowerCase().includes('key not valid'))) {
+          localStorage.removeItem('minha_chave_gemini');
           throw new Error('API_KEY_INVALID');
         }
 
@@ -114,7 +138,6 @@ async function callGemini(prompt, systemInstruction = '') {
 
       const data = await response.json();
       if (!data.candidates || data.candidates.length === 0) {
-        // Could be a safety block or empty response
         const blockReason = data.promptFeedback?.blockReason;
         if (blockReason) {
           throw new Error(`BLOCKED: ${blockReason}`);
@@ -126,9 +149,8 @@ async function callGemini(prompt, systemInstruction = '') {
       return data.candidates[0].content.parts[0].text;
 
     } catch (error) {
-      // If it's a definitive error (not model-related), throw immediately
       if (['API_KEY_MISSING', 'API_KEY_INVALID', 'API_KEY_RESTRICTED', 'RATE_LIMIT'].includes(error.message) ||
-          error.message.startsWith('BLOCKED:')) {
+        error.message.startsWith('BLOCKED:')) {
         throw error;
       }
       lastError = error;
@@ -136,14 +158,11 @@ async function callGemini(prompt, systemInstruction = '') {
     }
   }
 
-  // All models failed
   throw lastError || new Error('ALL_MODELS_FAILED');
 }
 
-
 /**
  * 🚀 THE MAGIC: Generate i+1 Analysis for a word in context
- * This creates the perfect, easy-to-understand card for the user.
  */
 export async function generateIPlusOneAnalysis(word, context) {
   const systemInstruction = `You are Mairo Vergara, an expert English teacher using the i+1 methodology (Comprehensible Input).
@@ -171,7 +190,6 @@ Reply ONLY with the JSON object.`;
     return parseJSON(text);
   } catch (error) {
     console.error('Failed to generate i+1 analysis', error);
-    // Re-throw specific errors so UI can show helpful messages
     if (['API_KEY_MISSING', 'API_KEY_INVALID', 'API_KEY_RESTRICTED', 'RATE_LIMIT'].includes(error.message)) {
       throw error;
     }
@@ -179,10 +197,8 @@ Reply ONLY with the JSON object.`;
   }
 }
 
-
 /**
  * 🎬 Extract Vocabulary from YouTube Transcript
- * Reads a transcript and finds the best chunks/phrasal verbs.
  */
 export async function extractVocabFromTranscript(transcriptText) {
   const systemInstruction = `You are an expert English teacher. Find the most useful chunks, idioms, and phrasal verbs from the transcript. Reply ONLY with a JSON array.`;
@@ -211,11 +227,8 @@ Return a JSON array where each object has:
   }
 }
 
-
 /**
  * 🗣️ Detect Shadowing Video Segments for Looping
- * AI analyzes the video's REAL timed transcript and identifies short, punchy audio segments
- * with 100% accurate timestamps matching the actual audio.
  */
 export async function detectUsefulSegments(youtubeVideoId, videoTitle) {
   const systemInstruction = `You are an expert English pronunciation coach specializing in the Shadowing technique.
@@ -223,12 +236,10 @@ Your task is to select 5 to 8 SHORT spoken segments from the provided REAL video
 CRITICAL: You MUST use the EXACT timestamps provided in the transcript lines. Do NOT invent timestamps.
 Reply ONLY with a valid JSON array.`;
 
-  // Fetch real timed transcript
   let timed = await fetchTranscriptTimed(youtubeVideoId);
   let transcriptSnippet = '';
 
   if (timed && timed.length > 0) {
-    // Format real timed lines: [start s - end s] Text
     transcriptSnippet = timed.slice(0, 200).map(t => {
       const s = Math.round(t.start);
       const e = Math.round(t.start + t.duration);
@@ -264,17 +275,15 @@ Reply ONLY with the JSON array.`;
   try {
     const text = await callGemini(prompt, systemInstruction);
     const segments = parseJSON(text);
-    
-    // Validate and clean up segments - enforce strictly 3 to 10 seconds for Shadowing
+
     return segments.map(seg => {
       const start = Math.max(0, Number(seg.start_seconds) || 0);
       let end = Number(seg.end_seconds) || (start + 5);
-      
-      // Enforce 3 to 10 seconds max for shadowing
+
       if (end <= start) end = start + 4;
       if (end - start < 3) end = start + 3;
       if (end - start > 10) end = start + 8;
-      
+
       return {
         title: seg.title || 'Trecho para Shadowing',
         reason: seg.reason || 'Ouça no loop e repita imitando o ritmo nativo.',
@@ -283,20 +292,17 @@ Reply ONLY with the JSON array.`;
         key_expressions: seg.key_expressions || []
       };
     }).filter(seg => seg.end_seconds > seg.start_seconds);
-    
+
   } catch (error) {
     console.error('Failed to detect segments', error);
     throw error;
   }
 }
 
-
 /**
  * 📜 Fetch Timed YouTube Video Transcript
- * Returns array of { text, start, duration } with exact timestamps.
  */
 export async function fetchTranscriptTimed(youtubeVideoId) {
-  // Strategy 1: Local server transcript API (100% accurate, official YouTube transcript)
   try {
     const res = await fetch(`/api/transcript?videoId=${encodeURIComponent(youtubeVideoId)}`, { signal: AbortSignal.timeout(7000) });
     if (res.ok) {
@@ -306,10 +312,9 @@ export async function fetchTranscriptTimed(youtubeVideoId) {
       }
     }
   } catch (e) {
-    console.warn('Local /api/transcript failed or offline, trying proxies...', e.message);
+    console.warn('Local /api/transcript offline, tentando proxies...');
   }
 
-  // Strategy 2: Fallback proxies
   const proxyUrls = [
     `https://yt-transcript-api.vercel.app/api/transcript?videoId=${youtubeVideoId}&lang=en`,
     `https://youtube-transcript-api.vercel.app/api?videoId=${youtubeVideoId}`
@@ -324,7 +329,7 @@ export async function fetchTranscriptTimed(youtubeVideoId) {
           return data;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   return null;
@@ -340,7 +345,6 @@ export async function fetchTranscriptText(youtubeVideoId) {
   }
   throw new Error('TRANSCRIPT_UNAVAILABLE');
 }
-
 
 /**
  * Generate practice exercises
