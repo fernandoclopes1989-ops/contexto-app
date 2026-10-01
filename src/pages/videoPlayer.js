@@ -95,6 +95,33 @@ export async function renderVideoPlayer(container, params) {
         <span><kbd style="background:var(--bg-card); padding:2px 5px; border-radius:3px; border:1px solid var(--border-color);">←</kbd> <kbd style="background:var(--bg-card); padding:2px 5px; border-radius:3px; border:1px solid var(--border-color);">→</kbd> ±5s</span>
         <span>💬 <em>Dica: você também pode alternar pelo botão <strong>[CC]</strong> no rodapé do player</em></span>
       </div>
+
+      <!-- Mobile 1-Tap Quick Loop Bar (Zero Typing / Zero Manual Copy) -->
+      <div class="mobile-quick-loop-bar" style="margin-top: 10px; padding: 12px; background: rgba(99, 102, 241, 0.07); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <strong style="font-size: 13px; color: var(--accent-secondary); display: flex; align-items: center; gap: 6px;">
+            <span>📱</span> <span>Controles Rápidos de Toque (Sem Digitar):</span>
+          </strong>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <span class="text-xs text-muted">Duração:</span>
+            <button type="button" class="btn btn-ghost btn-sm quick-loop-dur-btn active" data-dur="5" style="padding: 2px 8px; font-size: 11px; background: var(--accent-primary); color: white;">5s</button>
+            <button type="button" class="btn btn-ghost btn-sm quick-loop-dur-btn" data-dur="3" style="padding: 2px 8px; font-size: 11px;">3s</button>
+            <button type="button" class="btn btn-ghost btn-sm quick-loop-dur-btn" data-dur="8" style="padding: 2px 8px; font-size: 11px;">8s</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="btn-touch-loop-last" class="btn btn-primary" style="flex: 1.5; min-width: 150px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; padding: 10px 12px;" title="Repetir em loop os últimos segundos que acabaram de falar">
+            <span>🔁</span> <span>Loop últimos <span id="label-touch-dur">5</span>s</span>
+          </button>
+          <button id="btn-touch-save-clip" class="btn btn-secondary" style="flex: 1; min-width: 130px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; padding: 10px 12px;" title="Salvar o trecho atual como Clip">
+            <span>💾</span> <span>Salvar Clip</span>
+          </button>
+          <button id="btn-touch-rewind" class="btn btn-ghost" style="padding: 10px 12px; font-weight: 600;" title="Voltar 5 segundos">
+            ⏪ -5s
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Tabs: Clips / Vocabulary / AI Segments / AI Cards -->
@@ -281,6 +308,48 @@ export async function renderVideoPlayer(container, params) {
 
   // Setup all event listeners
   setupVideoPlayerListeners(container, videoId);
+
+  // Auto-fetch transcript and preload AI segments automatically on open (Zero manual work!)
+  autoLoadTranscriptAndSegments(currentVideoData);
+}
+
+async function autoLoadTranscriptAndSegments(videoData) {
+  if (!videoData || !videoData.youtube_video_id) return;
+  try {
+    const { fetchTranscriptTimed, loadVideoTranscript, saveVideoTranscript, detectUsefulSegments } = await import('../ai.js');
+    const ytVideoId = videoData.youtube_video_id;
+    let timed = loadVideoTranscript(ytVideoId);
+
+    if (!timed || timed.length === 0) {
+      timed = await fetchTranscriptTimed(ytVideoId);
+      if (timed && timed.length > 0) {
+        saveVideoTranscript(ytVideoId, timed);
+      }
+    }
+
+    if (timed && timed.length > 0) {
+      const statusDiv = document.getElementById('transcript-saved-status');
+      const countSpan = document.getElementById('transcript-lines-count');
+      if (statusDiv && countSpan) {
+        countSpan.textContent = timed.length;
+        statusDiv.classList.remove('hidden');
+      }
+
+      const segmentsList = document.getElementById('ai-segments-list');
+      if (segmentsList && (!segmentsList._segments || segmentsList._segments.length === 0)) {
+        const segments = await detectUsefulSegments(ytVideoId, videoData.titulo, timed, 8);
+        if (segments && segments.length > 0) {
+          segmentsList.innerHTML = segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
+          segmentsList._segments = segments;
+          segmentsList.classList.remove('hidden');
+          const loading = document.getElementById('segments-loading');
+          if (loading) loading.classList.add('hidden');
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Auto transcript/segments background task finished:', err.message);
+  }
 }
 
 async function initPlayer(ytVideoId) {
@@ -433,6 +502,81 @@ function setupVideoPlayerListeners(container, videoId) {
     refreshClipList(videoId);
     showToast('Loop parado', 'info');
   });
+
+  // Mobile Quick Loop Bar controls
+  let selectedTouchDuration = 5;
+  const durLabel = container.querySelector('#label-touch-dur');
+  container.querySelectorAll('.quick-loop-dur-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.quick-loop-dur-btn').forEach(b => {
+        b.style.background = '';
+        b.style.color = '';
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+      btn.style.background = 'var(--accent-primary)';
+      btn.style.color = 'white';
+      selectedTouchDuration = parseInt(btn.dataset.dur, 10) || 5;
+      if (durLabel) durLabel.textContent = selectedTouchDuration;
+    });
+  });
+
+  const btnTouchLoopLast = container.querySelector('#btn-touch-loop-last');
+  if (btnTouchLoopLast) {
+    btnTouchLoopLast.addEventListener('click', () => {
+      const cur = getCurrentTime();
+      const dur = selectedTouchDuration;
+      const start = Math.max(0, Math.round((cur - dur) * 10) / 10);
+      const end = Math.max(start + 2, Math.round(cur * 10) / 10);
+
+      startLoop(start, end);
+      document.getElementById('loop-indicator').classList.remove('hidden');
+      document.getElementById('clip-start').value = formatTime(start);
+      document.getElementById('clip-end').value = formatTime(end);
+      showToast(`🔁 Loop dos últimos ${dur}s: ${formatTime(start)} → ${formatTime(end)}`, 'info', 2500);
+    });
+  }
+
+  const btnTouchSaveClip = container.querySelector('#btn-touch-save-clip');
+  if (btnTouchSaveClip) {
+    btnTouchSaveClip.addEventListener('click', async () => {
+      const cfg = getLoopConfig();
+      let start, end;
+      if (cfg) {
+        start = cfg.start;
+        end = cfg.end;
+      } else {
+        const cur = getCurrentTime();
+        start = Math.max(0, Math.round((cur - selectedTouchDuration) * 10) / 10);
+        end = Math.max(start + 2, Math.round(cur * 10) / 10);
+      }
+
+      try {
+        const clipName = `Trecho ${formatTime(start)} - ${formatTime(end)}`;
+        await addClip({
+          video_id: videoId,
+          nome: clipName,
+          tempo_inicio: start,
+          tempo_fim: end
+        });
+        showToast(`🎬 Trecho salvo: ${formatTime(start)} → ${formatTime(end)}!`, 'success');
+        refreshClipList(videoId);
+        refreshTabCounts(videoId);
+      } catch (err) {
+        showToast('Erro ao salvar trecho', 'error');
+      }
+    });
+  }
+
+  const btnTouchRewind = container.querySelector('#btn-touch-rewind');
+  if (btnTouchRewind) {
+    btnTouchRewind.addEventListener('click', () => {
+      const cur = getCurrentTime();
+      const newTime = Math.max(0, cur - 5);
+      seekTo(newTime);
+      showToast('⏪ Voltou 5s', 'info', 1000);
+    });
+  }
 
   // Speed controls
   container.querySelectorAll('.speed-btn').forEach(btn => {

@@ -70,10 +70,21 @@ export function parseTime(timeStr) {
  * - Pure text fallback (splits into sentences without error)
  * Returns array of { start: number, duration: number, text: string }.
  */
+/**
+ * Parse raw transcript text into short, bite-sized study segments (3 to 7s max).
+ * Fixes mobile and external AI issues where text comes in huge chunks (e.g. 30s-1min)
+ * or breaks YouTube's micro-timestamps.
+ * 
+ * Supports:
+ * - YouTube standard timestamps: "0:01 Text", "01:23:45 Text", "[0:04] Text"
+ * - YouTube Brasil format: "0:000 segundo- Text", "0:022 segundos Jackie", "0:3636 segundos- Thank you"
+ * - External AI or transcript tools with large intervals (auto-sliced into 3-6s sentences)
+ * - Pure text fallback without timestamps (auto-distributed into 4-6s clips)
+ */
 export function parsePastedTranscript(rawText) {
   if (!rawText || typeof rawText !== 'string') return [];
   const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const items = [];
+  const rawItems = [];
 
   // Match: [0:04], 0:04, 0:022 segundos, 0:3636 segundos-, 01:23:45, 0:000 segundo-
   const timeRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\d+)?(?:[.,]\d+)?(?:\])?(?:\s*(?:segundos?|minutos?|horas?|seconds?|mins?|s)\b)?(?:\s*[-–:])?\s*(.*)$/i;
@@ -92,11 +103,11 @@ export function parsePastedTranscript(rawText) {
       const seconds = h * 3600 + min * 60 + s;
       
       let rest = (m[4] || '').trim();
-      // Remove any lingering "segundos", "segundo-", etc. from front of rest
       rest = rest.replace(/^(?:segundos?|minutos?|horas?|seconds?|mins?|s)[-–:\s]*/i, '').trim();
+      rest = rest.replace(/^(?:[-–to\s]*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\d+)?(?:[.,]\d+)?[-–\s]*)/i, '').trim();
 
       if (lastTime !== null && accumulatedText.length > 0) {
-        items.push({ start: lastTime, duration: 4, text: accumulatedText.join(' ') });
+        rawItems.push({ start: lastTime, duration: 4, text: accumulatedText.join(' ') });
         accumulatedText = [];
       }
       lastTime = seconds;
@@ -108,30 +119,69 @@ export function parsePastedTranscript(rawText) {
   }
 
   if (lastTime !== null && accumulatedText.length > 0) {
-    items.push({ start: lastTime, duration: 4, text: accumulatedText.join(' ') });
+    rawItems.push({ start: lastTime, duration: 4, text: accumulatedText.join(' ') });
   }
 
-  // Fallback: If no timestamps could be parsed from any line, chunk the raw text into sentences
-  if (items.length === 0) {
-    const sentences = rawText.split(/(?<=[.?!])\s+/).map(s => s.trim()).filter(s => s.length > 5);
+  // Fallback: If no timestamps could be parsed, chunk raw text into natural short sentences
+  if (rawItems.length === 0) {
+    const sentences = rawText.split(/(?<=[.?!])\s+/).map(s => s.trim()).filter(s => s.length > 3);
     let curTime = 5;
     for (const sent of sentences) {
-      items.push({ start: curTime, duration: 5, text: sent });
-      curTime += 8;
+      const estDuration = Math.max(3, Math.min(8, Math.round(sent.split(/\s+/).length * 0.4)));
+      rawItems.push({ start: curTime, duration: estDuration, text: sent });
+      curTime += estDuration + 1;
+    }
+  } else {
+    // Calculate durations from differences between timestamps
+    for (let i = 0; i < rawItems.length; i++) {
+      if (i < rawItems.length - 1) {
+        const diff = rawItems[i + 1].start - rawItems[i].start;
+        rawItems[i].duration = diff > 0 ? diff : 4;
+      } else {
+        rawItems[i].duration = 4;
+      }
     }
   }
 
-  // Calculate durations from difference between timestamps
-  for (let i = 0; i < items.length; i++) {
-    if (i < items.length - 1) {
-      const diff = items[i + 1].start - items[i].start;
-      items[i].duration = diff > 0 && diff < 30 ? diff : 4;
+  // --- SHORT-CHUNK SENTENCE SLICER ---
+  // If an external source created huge blocks (> 7 seconds or multiple sentences),
+  // slice them down into 3-6 second micro-clips so YouTube loops don't break!
+  const finalClips = [];
+
+  for (const item of rawItems) {
+    const rawSentence = (item.text || '').trim();
+    if (!rawSentence) continue;
+
+    const sentences = rawSentence.split(/(?<=[.?!])\s+/).map(s => s.trim()).filter(Boolean);
+    const itemDuration = item.duration || 4;
+
+    if (itemDuration > 7 && sentences.length > 1) {
+      // Proportional distribution by sentence length
+      const totalChars = sentences.reduce((sum, s) => sum + s.length, 0);
+      let curStart = item.start;
+
+      for (let i = 0; i < sentences.length; i++) {
+        const sent = sentences[i];
+        const fraction = totalChars > 0 ? (sent.length / totalChars) : (1 / sentences.length);
+        const subDuration = Math.max(2.5, Math.min(8, Math.round(itemDuration * fraction * 10) / 10));
+        
+        finalClips.push({
+          start: Math.round(curStart * 10) / 10,
+          duration: subDuration,
+          text: sent
+        });
+        curStart += subDuration;
+      }
     } else {
-      items[i].duration = 4;
+      finalClips.push({
+        start: Math.round(item.start * 10) / 10,
+        duration: Math.min(Math.max(itemDuration, 2.5), 8), // Bound between 2.5s and 8s for shadowing
+        text: rawSentence
+      });
     }
   }
 
-  return items;
+  return finalClips;
 }
 
 /**

@@ -358,7 +358,27 @@ Reply ONLY with the JSON array.`;
       const normalized = normalizeSegments(segments, true);
       if (normalized.length > 0) return normalized;
     } catch (e) {
-      console.warn('Transcript-based segment parsing failed, falling back to smart generation:', e);
+      console.warn('Transcript-based Gemini parsing error, extracting directly from real transcript lines:', e.message);
+      
+      // Direct extraction fallback from real transcript: GUARANTEED exact timestamps & text!
+      const step = Math.max(1, Math.floor(timed.length / targetCount));
+      const extracted = [];
+      for (let i = 0; i < timed.length && extracted.length < targetCount; i += step) {
+        const item = timed[i];
+        if (item && item.text && item.text.trim().length > 3) {
+          const start = Math.round(item.start);
+          const end = Math.round(item.start + (item.duration || 4));
+          extracted.push({
+            title: item.text.trim(),
+            reason: "Ouça o trecho no loop e repita imitando a pronúncia e ritmo do falante nativo.",
+            start_seconds: start,
+            end_seconds: Math.max(start + 3, Math.min(start + 8, end)),
+            key_expressions: [item.text.trim()],
+            is_exact: true
+          });
+        }
+      }
+      if (extracted.length > 0) return extracted;
     }
   }
 
