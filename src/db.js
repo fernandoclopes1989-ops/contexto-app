@@ -287,6 +287,7 @@ export const addVideo = (video) => add('videos', video);
 export const getAllVideos = () => getAll('videos');
 export const getVideo = (id) => getById('videos', id);
 export const deleteVideo = (id) => remove('videos', id);
+export const updateVideo = (video) => update('videos', video);
 
 // Clips
 export const addClip = (clip) => add('clips', clip);

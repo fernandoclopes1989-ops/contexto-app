@@ -64,6 +64,10 @@ async function renderVideoCards(videos) {
       getVocabularioByVideo(video.id)
     ]);
 
+    const hasTranscriptBadge = video.has_transcript === false
+      ? `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);" title="Sem legendas no YouTube - apenas estudo manual">⚠️ Sem legenda</span>`
+      : `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" title="Legendas [CC] disponíveis para Shadowing e IA">🎧 Shadowing OK</span>`;
+
     cards.push(`
       <div class="video-card" data-video-id="${video.id}" role="button" tabindex="0">
         <div class="video-card-thumb">
@@ -74,6 +78,7 @@ async function renderVideoCards(videos) {
           <div class="video-card-meta">
             <span class="badge">${clips.length} trecho${clips.length !== 1 ? 's' : ''}</span>
             <span class="badge">${vocab.length} palavra${vocab.length !== 1 ? 's' : ''}</span>
+            ${hasTranscriptBadge}
             <button class="btn btn-ghost btn-sm delete-video-btn" data-video-id="${video.id}" title="Remover vídeo">🗑️</button>
           </div>
         </div>
@@ -134,21 +139,47 @@ async function handleAddVideo(input) {
     return;
   }
 
-  // Fetch title
+  // Fetch title & validate subtitles
   const addBtn = document.getElementById('add-video-btn');
-  addBtn.textContent = '...';
+  addBtn.textContent = '⏳ Validando vídeo e legendas...';
   addBtn.disabled = true;
 
   try {
-    const titulo = await fetchVideoTitle(videoId);
+    const { fetchTranscriptTimed } = await import('../ai.js');
+
+    const [titulo, timedTranscript] = await Promise.all([
+      fetchVideoTitle(videoId),
+      fetchTranscriptTimed(videoId).catch(() => null)
+    ]);
+
+    const hasTranscript = Array.isArray(timedTranscript) && timedTranscript.length > 0;
+
+    if (!hasTranscript) {
+      const proceed = confirm(
+        '⚠️ AVISO SOBRE AS LEGENDAS:\n\n' +
+        'Este vídeo NÃO possui legendas/transcrição disponíveis no YouTube.\n\n' +
+        '• Você poderá assistir ao vídeo normalmente e marcar loops manuais na aba "Trechos".\n' +
+        '• Porém, as funções automáticas de "Shadowing com IA" e "Cards 1+1" precisam de vídeos com legendas [CC] no YouTube.\n\n' +
+        'Deseja adicionar este vídeo mesmo assim?'
+      );
+
+      if (!proceed) {
+        return;
+      }
+    }
 
     const id = await addVideo({
       youtube_video_id: videoId,
       titulo: titulo,
+      has_transcript: hasTranscript,
       data_adicionado: new Date().toISOString()
     });
 
-    showToast('Vídeo adicionado! 🎉', 'success');
+    if (hasTranscript) {
+      showToast('Vídeo validado e adicionado com legendas prontas para IA! 🎉🎧', 'success');
+    } else {
+      showToast('Vídeo adicionado (apenas modo estudo manual)! 📺', 'info');
+    }
     input.value = '';
     navigate(`/video/${id}`);
   } catch (err) {
