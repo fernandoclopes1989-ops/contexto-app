@@ -126,12 +126,44 @@ export function reinitSupabase() {
 
 // --- Generic CRUD Operations (Hybrid) ---
 
+function decodeRevisaoCard(card) {
+  if (!card) return card;
+  let status = card.status;
+  let step = card.step || 0;
+  let lapses = card.lapses || 0;
+  let proxima_revisao = card.proxima_revisao;
+  let ultima_resposta = card.ultima_resposta;
+
+  if (ultima_resposta && typeof ultima_resposta === 'string' && ultima_resposta.includes('|')) {
+    const parts = ultima_resposta.split('|');
+    ultima_resposta = parts[0] === 'null' ? null : (parts[0] || null);
+    status = parts[1] || 'new';
+    step = parseInt(parts[2], 10) || 0;
+    lapses = parseInt(parts[3], 10) || 0;
+    if (parts[4]) {
+      proxima_revisao = parts[4];
+    }
+  }
+
+  return {
+    ...card,
+    status,
+    step,
+    lapses,
+    proxima_revisao,
+    ultima_resposta
+  };
+}
+
 export async function getAll(storeName) {
   const sb = await initSupabase();
   if (sb && storeName !== 'settings') {
     try {
       const { data, error } = await sb.from(storeName).select('*');
       if (error) throw error;
+      if (storeName === 'revisao' && Array.isArray(data)) {
+        return data.map(decodeRevisaoCard);
+      }
       return data || [];
     } catch (e) {
       console.warn(`Supabase getAll failed on ${storeName}, falling back to IndexedDB:`, e);
@@ -156,6 +188,9 @@ export async function getById(storeName, id) {
         if (error.code === 'PGRST116') return null; // No rows found
         throw error;
       }
+      if (storeName === 'revisao' && data) {
+        return decodeRevisaoCard(data);
+      }
       return data;
     } catch (e) {
       console.warn(`Supabase getById failed on ${storeName}, falling back to IndexedDB:`, e);
@@ -177,6 +212,9 @@ export async function getByIndex(storeName, indexName, value) {
     try {
       const { data, error } = await sb.from(storeName).select('*').eq(indexName, value);
       if (error) throw error;
+      if (storeName === 'revisao' && Array.isArray(data)) {
+        return data.map(decodeRevisaoCard);
+      }
       return data || [];
     } catch (e) {
       console.warn(`Supabase getByIndex failed on ${storeName}, falling back to IndexedDB:`, e);
@@ -202,6 +240,15 @@ export async function add(storeName, data) {
       allowed.forEach(k => {
         if (payload[k] !== undefined) filtered[k] = payload[k];
       });
+
+      // Pack additional state into the ultima_resposta string
+      const response = payload.ultima_resposta || 'null';
+      const status = payload.status || 'new';
+      const step = payload.step || 0;
+      const lapses = payload.lapses || 0;
+      const proxima_revisao = payload.proxima_revisao || '';
+      filtered.ultima_resposta = `${response}|${status}|${step}|${lapses}|${proxima_revisao}`;
+
       if (filtered.proxima_revisao && filtered.proxima_revisao.includes('T')) {
         filtered.proxima_revisao = filtered.proxima_revisao.split('T')[0];
       }
@@ -209,6 +256,9 @@ export async function add(storeName, data) {
     }
     const { data: inserted, error } = await sb.from(storeName).insert([payload]).select().single();
     if (error) throw error;
+    if (storeName === 'revisao' && inserted) {
+      return decodeRevisaoCard(inserted).id;
+    }
     return storeName === 'study_log' ? inserted.date : inserted.id;
   }
   const db = await openDB();
@@ -241,6 +291,15 @@ export async function update(storeName, data) {
       allowed.forEach(k => {
         if (payload[k] !== undefined) filtered[k] = payload[k];
       });
+
+      // Pack additional state into the ultima_resposta string
+      const response = payload.ultima_resposta || 'null';
+      const status = payload.status || 'new';
+      const step = payload.step || 0;
+      const lapses = payload.lapses || 0;
+      const proxima_revisao = payload.proxima_revisao || '';
+      filtered.ultima_resposta = `${response}|${status}|${step}|${lapses}|${proxima_revisao}`;
+
       // Ensure date only for PostgreSQL DATE column
       if (filtered.proxima_revisao && filtered.proxima_revisao.includes('T')) {
         filtered.proxima_revisao = filtered.proxima_revisao.split('T')[0];
@@ -250,6 +309,9 @@ export async function update(storeName, data) {
 
     const { data: updated, error } = await sb.from(storeName).update(payload).eq(pk, idVal).select().single();
     if (error) throw error;
+    if (storeName === 'revisao' && updated) {
+      return decodeRevisaoCard(updated);
+    }
     return updated;
   }
   const db = await openDB();

@@ -28,7 +28,7 @@ const GEMINI_MODELS = [
 /**
  * Pega a chave da API com segurança (sem vazar no GitHub)
  */
-async function getApiKeySegura() {
+async function getApiKeySegura(promptIfMissing = true) {
   // 1. Tenta pegar do banco de dados local ou do celular
   let apiKey = localStorage.getItem('minha_chave_gemini');
 
@@ -39,7 +39,7 @@ async function getApiKeySegura() {
   }
 
   // 2. Se for a primeira vez e não tiver chave salva, pergunta na tela
-  if (!apiKey || apiKey.trim() === '' || apiKey.includes('gh7GFTPCcdBch')) {
+  if ((!apiKey || apiKey.trim() === '' || apiKey.includes('gh7GFTPCcdBch')) && promptIfMissing) {
     apiKey = prompt("🔑 Bem-vindo! Cole a sua Chave de API do Gemini aqui:");
     if (apiKey && apiKey.trim() !== '') {
       apiKey = apiKey.trim();
@@ -56,10 +56,10 @@ async function getApiKeySegura() {
 /**
  * Helper to call Gemini REST API with automatic model fallback
  */
-export async function callGemini(prompt, systemInstruction = '') {
-  let apiKey = await getApiKeySegura();
+export async function callGemini(prompt, systemInstruction = '', promptIfMissing = true) {
+  let apiKey = await getApiKeySegura(promptIfMissing);
 
-  if (!apiKey) {
+  if (!apiKey || apiKey.includes('gh7GFTPCcdBch')) {
     throw new Error('API_KEY_MISSING');
   }
 
@@ -287,7 +287,7 @@ function normalizeSegments(segments, isExact = false) {
 /**
  * 🗣️ Detect Shadowing Video Segments for Looping
  */
-export async function detectUsefulSegments(youtubeVideoId, videoTitle, customTranscript = null, count = 8) {
+export async function detectUsefulSegments(youtubeVideoId, videoTitle, customTranscript = null, count = 8, promptIfMissing = false) {
   let timed = customTranscript;
   let isExact = Boolean(customTranscript && customTranscript.length > 0);
 
@@ -353,7 +353,7 @@ Return a JSON array where each object has:
 
 Reply ONLY with the JSON array.`;
 
-      const text = await callGemini(prompt, systemInstruction);
+      const text = await callGemini(prompt, systemInstruction, promptIfMissing);
       const segments = parseJSON(text);
       const normalized = normalizeSegments(segments, true);
       if (normalized.length > 0) return normalized;
@@ -382,8 +382,9 @@ Reply ONLY with the JSON array.`;
     }
   }
 
-  // 2. Intelligent AI fallback: generates the best conversational phrases from the video
-  return await detectFallbackSegments(youtubeVideoId, videoTitle, targetCount);
+  // 2. Do NOT invent text if no real transcript is available!
+  console.warn('No real timed transcript available, returning empty array to avoid inventing text!');
+  return [];
 }
 
 /**

@@ -799,7 +799,7 @@ function setupVideoPlayerListeners(container, videoId) {
         const count = countSelect ? parseInt(countSelect.value, 10) : 8;
 
         const { detectUsefulSegments } = await import('../ai.js');
-        const segments = await detectUsefulSegments(currentVideoData.youtube_video_id, currentVideoData.titulo, null, count);
+        const segments = await detectUsefulSegments(currentVideoData.youtube_video_id, currentVideoData.titulo, null, count, true);
         
         currentVideoData.has_transcript = true;
         try { await updateVideo(currentVideoData); } catch (e) {}
@@ -807,8 +807,9 @@ function setupVideoPlayerListeners(container, videoId) {
         const segmentsList = document.getElementById('ai-segments-list');
         
         if (!segments || segments.length === 0) {
-          segmentsList.innerHTML = `<div class="text-center text-muted text-sm" style="padding: var(--space-6);">
-            Nenhum trecho gerado. Tente novamente em instantes.
+          segmentsList.innerHTML = `<div class="text-center text-muted text-sm" style="padding: var(--space-6); line-height: 1.6;">
+            ⚠️ <strong>Legendas sincronizadas indisponíveis automaticamente para este vídeo.</strong><br>
+            Toque no botão <strong>"📋 Colar Legenda do YouTube"</strong> abaixo para colar a legenda copiada e gerar os trechos exatos de forma 100% automática!
           </div>`;
         } else {
           segmentsList.innerHTML = segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
