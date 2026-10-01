@@ -1,5 +1,1 @@
-streamlit
-google-generativeai
-supabase
-pandas
-python-dotenv
+youtube-transcript-api==0.6.2

@@ -237,20 +237,20 @@ CRITICAL: You MUST use the EXACT timestamps provided in the transcript lines. Do
 Reply ONLY with a valid JSON array.`;
 
   let timed = await fetchTranscriptTimed(youtubeVideoId);
-  let transcriptSnippet = '';
-
-  if (timed && timed.length > 0) {
-    transcriptSnippet = timed.slice(0, 200).map(t => {
-      const s = Math.round(t.start);
-      const e = Math.round(t.start + t.duration);
-      return `[${s}s - ${e}s]: ${t.text}`;
-    }).join('\n');
+  if (!timed || timed.length === 0) {
+    throw new Error('TRANSCRIPT_UNAVAILABLE');
   }
+
+  const transcriptSnippet = timed.slice(0, 200).map(t => {
+    const s = Math.round(t.start);
+    const e = Math.round(t.start + t.duration);
+    return `[${s}s - ${e}s]: ${t.text}`;
+  }).join('\n');
 
   const prompt = `
 Video Title: "${videoTitle}"
 
-${transcriptSnippet ? `Below is the EXACT timed transcript of what is spoken in the video:
+Below is the EXACT timed transcript of what is spoken in the video:
 ${transcriptSnippet}
 
 Select 5 to 8 of the best phrases directly from the transcript lines above for Shadowing practice.
@@ -258,7 +258,7 @@ Rules:
 1. Every segment MUST be copied directly from the transcript text above.
 2. Use the EXACT start_seconds and end_seconds from the corresponding transcript line! If a phrase spans 2 consecutive transcript lines, combine them and use the start of the first line and end of the second line.
 3. DURATION: (end_seconds - start_seconds) MUST be between 3 and 10 seconds.
-4. Provide a helpful Portuguese pronunciation/rhythm tip for shadowing.` : `Suggest 5 short shadowing phrases (3 to 8 seconds) relevant to "${videoTitle}".`}
+4. Provide a helpful Portuguese pronunciation/rhythm tip for shadowing.
 
 Return a JSON array where each object has:
 {
