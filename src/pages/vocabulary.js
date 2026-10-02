@@ -7,6 +7,8 @@ import { formatDate, formatTime, escapeHtml, showToast, debounce } from '../util
 import { getDifficultyBadge, getNextReviewLabel } from '../srs.js';
 import { openQuickCaptureModal } from '../components/quickCaptureModal.js';
 
+let activeClickListener = null;
+
 export async function renderVocabulary(container) {
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
 
@@ -97,10 +99,17 @@ export async function renderVocabulary(container) {
     }
   }, 250);
 
-  searchInput.addEventListener('input', (e) => filterFn(e.target.value));
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => filterFn(e.target.value));
+  }
 
-  // Delete handlers
-  container.addEventListener('click', async (e) => {
+  // De-duplicate container click event listeners
+  if (activeClickListener) {
+    container.removeEventListener('click', activeClickListener);
+  }
+
+  activeClickListener = async (e) => {
+    // Delete handlers
     const deleteBtn = e.target.closest('.delete-full-vocab-btn');
     if (deleteBtn) {
       const vocabId = deleteBtn.dataset.vocabId;
@@ -114,6 +123,7 @@ export async function renderVocabulary(container) {
         showToast('Palavra removida', 'info');
         renderVocabulary(container);
       }
+      return;
     }
 
     // Go to video
@@ -121,8 +131,25 @@ export async function renderVocabulary(container) {
     if (videoLink) {
       e.preventDefault();
       window.location.hash = `/video/${videoLink.dataset.videoId}`;
+      return;
     }
-  });
+
+    // Speech pronunciation
+    const speakBtn = e.target.closest('.speak-vocab-btn');
+    if (speakBtn) {
+      const word = speakBtn.dataset.word;
+      if (word && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(word);
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+      }
+      return;
+    }
+  };
+
+  container.addEventListener('click', activeClickListener);
 }
 
 function renderFullVocabItem(vocab, reviewCard, video) {
@@ -130,16 +157,26 @@ function renderFullVocabItem(vocab, reviewCard, video) {
   const nextReview = reviewCard ? getNextReviewLabel(reviewCard) : 'Pendente';
 
   return `
-    <div class="vocab-item">
+    <div class="vocab-item" data-vocab-id="${vocab.id}">
       <div class="flex justify-between items-center" style="flex-wrap:wrap; gap: var(--space-2);">
         <div class="flex items-center gap-3">
-          <span class="vocab-word" style="margin-bottom:0;">${escapeHtml(vocab.palavra_ou_expressao)}</span>
+          <span class="vocab-word" style="margin-bottom:0; display: flex; align-items: center; gap: 6px;">
+            <strong>${escapeHtml(vocab.palavra_ou_expressao)}</strong>
+            <button class="btn btn-ghost btn-sm speak-vocab-btn" data-word="${escapeHtml(vocab.palavra_ou_expressao)}" title="Ouvir palavra" style="padding: 2px 6px; font-size: 13px; cursor: pointer;">🔊</button>
+          </span>
           <span class="badge ${badge.class}">${badge.text}</span>
         </div>
         <button class="btn btn-ghost btn-sm delete-full-vocab-btn" data-vocab-id="${vocab.id}" title="Remover">🗑️</button>
       </div>
 
-      ${vocab.frase_contexto ? `<div class="vocab-context mt-2">"${escapeHtml(vocab.frase_contexto)}"</div>` : ''}
+      ${vocab.frase_contexto ? `
+        <div class="vocab-context mt-2" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span>"${escapeHtml(vocab.frase_contexto)}"</span>
+          <button class="btn btn-ghost btn-sm speak-vocab-btn" data-word="${escapeHtml(vocab.frase_contexto)}" title="Ouvir frase inteira" style="padding: 2px 6px; font-size: 11px; white-space: nowrap; color: var(--accent-secondary); flex-shrink: 0; display: flex; align-items: center; gap: 2px; cursor: pointer;">
+            <span>🔊</span> <span>Ouvir Frase</span>
+          </button>
+        </div>
+      ` : ''}
       ${vocab.traducao_significado ? `<div class="vocab-translation mt-2">→ ${escapeHtml(vocab.traducao_significado)}</div>` : ''}
 
       <div class="vocab-meta">

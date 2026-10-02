@@ -432,9 +432,9 @@ function renderVocabItem(vocab) {
   return `
     <div class="vocab-item" data-vocab-id="${vocab.id}">
       <div class="flex justify-between items-center">
-        <div class="vocab-word">
-          ${escapeHtml(vocab.palavra_ou_expressao)}
-          <button class="btn btn-ghost btn-sm speak-vocab-btn" data-word="${escapeHtml(vocab.palavra_ou_expressao)}" title="Ouvir pronúncia" style="padding: 2px 6px; font-size: 14px;">🔊</button>
+        <div class="vocab-word" style="display: flex; align-items: center; gap: 6px;">
+          <strong>${escapeHtml(vocab.palavra_ou_expressao)}</strong>
+          <button class="btn btn-ghost btn-sm speak-vocab-btn" data-word="${escapeHtml(vocab.palavra_ou_expressao)}" title="Ouvir palavra" style="padding: 2px 6px; font-size: 13px;">🔊</button>
         </div>
         <div class="flex gap-2">
           ${vocab.timestamp ? `
@@ -443,7 +443,14 @@ function renderVocabItem(vocab) {
           <button class="btn btn-ghost btn-sm delete-vocab-btn" data-vocab-id="${vocab.id}" title="Remover">🗑️</button>
         </div>
       </div>
-      ${vocab.frase_contexto ? `<div class="vocab-context">"${escapeHtml(vocab.frase_contexto)}"</div>` : ''}
+      ${vocab.frase_contexto ? `
+        <div class="vocab-context" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span>"${escapeHtml(vocab.frase_contexto)}"</span>
+          <button class="btn btn-ghost btn-sm speak-vocab-btn" data-word="${escapeHtml(vocab.frase_contexto)}" title="Ouvir frase inteira" style="padding: 2px 6px; font-size: 11px; white-space: nowrap; color: var(--accent-secondary); flex-shrink: 0; display: flex; align-items: center; gap: 2px;">
+            <span>🔊</span> <span>Ouvir Frase</span>
+          </button>
+        </div>
+      ` : ''}
       ${vocab.traducao_significado ? `<div class="vocab-translation">→ ${escapeHtml(vocab.traducao_significado)}</div>` : ''}
     </div>
   `;

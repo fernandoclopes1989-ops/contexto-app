@@ -97,8 +97,11 @@ function renderCurrentCard(container) {
 
         <!-- Context sentence -->
         ${vocab.frase_contexto ? `
-          <div class="review-context">
+          <div class="review-context" style="position: relative; margin-bottom: 24px;">
             ${highlightWord(escapeHtml(vocab.frase_contexto), escapeHtml(vocab.palavra_ou_expressao))}
+            <button class="btn btn-ghost btn-sm speak-review-context-btn" data-word="${escapeHtml(vocab.frase_contexto)}" title="Ouvir frase inteira" style="position: absolute; bottom: -28px; right: 0; padding: 2px 8px; font-size: 11px; color: var(--accent-secondary); display: flex; align-items: center; gap: 4px; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: var(--radius-sm); cursor: pointer;">
+              <span>🔊</span> <span>Ouvir Frase</span>
+            </button>
           </div>
         ` : `
           <div class="review-context">
@@ -157,21 +160,6 @@ function renderCurrentCard(container) {
       });
     });
 
-    // Speech pronunciation
-    const speakBtn = container.querySelector('.speak-review-btn');
-    if (speakBtn) {
-      speakBtn.addEventListener('click', () => {
-        const word = speakBtn.dataset.word;
-        if (word && 'speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(word);
-          u.lang = 'en-US';
-          u.rate = 0.9;
-          window.speechSynthesis.speak(u);
-        }
-      });
-    }
-
     // Video link
     const videoLink = container.querySelector('.review-video-link');
     if (videoLink) {
@@ -195,6 +183,21 @@ function renderCurrentCard(container) {
     };
     document.addEventListener('keydown', keyHandler, { once: true });
   }
+
+  // Speech pronunciation (word or full sentence) - unconditional so they can listen to the context anytime!
+  container.querySelectorAll('.speak-review-btn, .speak-review-context-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const word = btn.dataset.word;
+      if (word && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(word);
+        u.lang = 'en-US';
+        u.rate = btn.classList.contains('speak-review-context-btn') ? 0.95 : 0.9;
+        window.speechSynthesis.speak(u);
+      }
+    });
+  });
 }
 
 function renderAnswer(card, vocab, video) {
