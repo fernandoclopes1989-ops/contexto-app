@@ -3,6 +3,8 @@
  * Supports both Local IndexedDB and Cloud Supabase based on settings.
  */
 
+import { today } from './utils.js';
+
 const DB_NAME = 'contexto_db';
 const DB_VERSION = 1;
 
@@ -412,21 +414,23 @@ export async function getStudyStreak() {
   if (!logs || logs.length === 0) return 0;
 
   const dates = logs.map(l => l.date).sort().reverse();
-  const today = new Date().toISOString().split('T')[0];
+  const todayStr = today();
 
   let streak = 0;
   let checkDate = new Date();
+  checkDate.setHours(checkDate.getHours() - 3); // match rollover
 
-  if (dates[0] !== today) {
+  if (dates[0] !== todayStr) {
     const yesterday = new Date();
+    yesterday.setHours(yesterday.getHours() - 3);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
     if (dates[0] !== yesterdayStr) return 0;
     checkDate = yesterday;
   }
 
   for (let i = 0; i < 365; i++) {
-    const dateStr = checkDate.toISOString().split('T')[0];
+    const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
     if (dates.includes(dateStr)) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
@@ -445,7 +449,7 @@ export async function getDueReviewCount() {
   const allCards = await getAllRevisao();
   if (!allCards || allCards.length === 0) return 0;
   const nowIso = new Date().toISOString();
-  const todayStr = nowIso.split('T')[0];
+  const todayStr = today();
   return allCards.filter(c => {
     if (!c.proxima_revisao) return true;
     if (c.proxima_revisao.length === 10) {
@@ -462,7 +466,7 @@ export async function getDueReviews() {
   const allCards = await getAllRevisao();
   if (!allCards || allCards.length === 0) return [];
   const nowIso = new Date().toISOString();
-  const todayStr = nowIso.split('T')[0];
+  const todayStr = today();
   return allCards.filter(c => {
     if (!c.proxima_revisao) return true;
     if (c.proxima_revisao.length === 10) {

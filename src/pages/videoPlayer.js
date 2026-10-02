@@ -23,6 +23,7 @@ let currentVideoData = null;
 let activeClipId = null;
 let editingClipId = null;
 let activeKeydownHandler = null;
+let activeClickListener = null;
 
 export async function renderVideoPlayer(container, params) {
   const videoId = params.id;
@@ -1044,7 +1045,10 @@ function setupVideoPlayerListeners(container, videoId) {
   }
 
   // Delegated click handlers for clip list, vocab list, and AI segments
-  container.addEventListener('click', async (e) => {
+  if (activeClickListener) {
+    container.removeEventListener('click', activeClickListener);
+  }
+  activeClickListener = async (e) => {
     // Loop clip
     const loopBtn = e.target.closest('.loop-clip-btn');
     if (loopBtn) {
@@ -1223,7 +1227,8 @@ function setupVideoPlayerListeners(container, videoId) {
       }
       return;
     }
-  });
+  };
+  container.addEventListener('click', activeClickListener);
 
   // Global keyboard shortcuts for video controls
   if (activeKeydownHandler) {
@@ -1361,6 +1366,10 @@ export function cleanupVideoPlayer() {
   if (activeKeydownHandler) {
     document.removeEventListener('keydown', activeKeydownHandler);
     activeKeydownHandler = null;
+  }
+  const container = document.getElementById('page-container');
+  if (container && activeClickListener) {
+    container.removeEventListener('click', activeClickListener);
   }
   stopTimeUpdater();
   destroyPlayer();
