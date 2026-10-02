@@ -228,6 +228,25 @@ export async function renderVideoPlayer(container, params) {
           </div>
         </div>
 
+        <!-- Collapsible Study Guide -->
+        <details class="mb-4" style="background: rgba(99, 102, 241, 0.05); padding: 10px; border-radius: var(--radius-sm); border: 1px solid rgba(99, 102, 241, 0.15); cursor: pointer; text-align: left;">
+          <summary style="font-weight: 700; font-size: 12px; color: var(--accent-secondary); display: flex; align-items: center; gap: 4px; outline: none;">
+            <span>💡</span> <span>Guia de Treino de Shadowing e Ouvido</span>
+          </summary>
+          <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-top: 8px; cursor: default;" onclick="event.stopPropagation()">
+            <p style="margin-bottom: 6px;"><strong>1. Ouvir e Ler (2-3x):</strong> Dê play no loop, ouça e leia a legenda para associar a escrita ao som real.</p>
+            <p style="margin-bottom: 6px;"><strong>2. Shadowing Silencioso (3-5x):</strong> Mova apenas a boca e língua tentando imitar o ritmo do vídeo, sem emitir som (mentalmente ou sussurrando).</p>
+            <p style="margin-bottom: 6px;"><strong>3. Shadowing Ativo (5-8x):</strong> Fale em voz alta sincronizado com o vídeo. Imite a entonação e a melodia da fala!</p>
+            <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; margin-top: 6px;">
+              <strong style="color: var(--text-primary);">🎯 Quando sei que está bom?</strong>
+              <ul style="margin: 4px 0 0 12px; padding: 0; list-style-type: disc;">
+                <li>De olhos fechados, você consegue distinguir e ouvir claramente cada palavra.</li>
+                <li>Você fala a frase inteira na mesma velocidade do nativo sem travar a língua.</li>
+              </ul>
+            </div>
+          </div>
+        </details>
+
         <div id="transcript-saved-status" class="mb-3 hidden">
           <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; font-size: 12px;">
             ✅ Legenda oficial salva neste vídeo (<span id="transcript-lines-count">0</span> falas sincronizadas)
@@ -286,7 +305,25 @@ export async function renderVideoPlayer(container, params) {
       <div class="ai-study-container text-center" style="padding: var(--space-6); background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
         <div style="font-size: 3rem; margin-bottom: var(--space-2);">🤖</div>
         <h3 style="margin-bottom: var(--space-2);">Estudo Mágico 1+1</h3>
-        <p class="text-muted text-sm" style="margin-bottom: var(--space-6);">A IA vai ler a transcrição deste vídeo, extrair as melhores expressões, e gerar cards no nível 1+1 (definições fáceis e novos exemplos).</p>
+        <p class="text-muted text-sm" style="margin-bottom: var(--space-4);">A IA vai ler a transcrição deste vídeo, extrair as melhores expressões, e gerar cards no nível 1+1 (definições fáceis e novos exemplos).</p>
+
+        <!-- Collapsible Vocabulary Guide -->
+        <details class="mb-4" style="background: rgba(16, 185, 129, 0.05); padding: 10px; border-radius: var(--radius-sm); border: 1px solid rgba(16, 185, 129, 0.15); cursor: pointer; text-align: left; max-width: 350px; margin: 0 auto var(--space-4);">
+          <summary style="font-weight: 700; font-size: 11px; color: #34d399; display: flex; align-items: center; gap: 4px; outline: none;">
+            <span>💡</span> <span>Guia de Estudo de Cards i+1 (SM-2)</span>
+          </summary>
+          <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-top: 8px; cursor: default;" onclick="event.stopPropagation()">
+            <p style="margin-bottom: 4px;"><strong>1. Ouvir com Contexto:</strong> Na tela de revisão do Anki, use o botão <strong>Ouvir Frase</strong> para treinar a sua percepção auditiva.</p>
+            <p style="margin-bottom: 4px;"><strong>2. Sem Traduzir:</strong> Tente associar a frase a uma imagem na mente, sem traduzir para o português.</p>
+            <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px; margin-top: 4px;">
+              <strong style="color: var(--text-primary);">🎯 A Regra dos 3 Segundos:</strong>
+              <ul style="margin: 2px 0 0 12px; padding: 0; list-style-type: disc;">
+                <li>Entendeu em menos de 3 segundos? Marque <strong>Bom</strong>.</li>
+                <li>Precisou pensar muito? Marque <strong>De Novo</strong>.</li>
+              </ul>
+            </div>
+          </div>
+        </details>
         
         <button id="btn-generate-ai-study" class="btn btn-primary btn-lg" style="width: 100%; max-width: 300px; margin: 0 auto;">
           ✨ Extrair e Gerar com IA
