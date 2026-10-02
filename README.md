@@ -10,20 +10,29 @@ Transforme qualquer vídeo do YouTube em uma ferramenta de imersão e aprendizad
 - A Inteligência Artificial analisa a transcrição e o conteúdo do vídeo do YouTube e identifica automaticamente **de 4 a 8 trechos ideais** para praticar listening e repetição.
 - Cada trecho detectado destaca as expressões-chave, explica a utilidade pedagógica e permite **iniciar o loop imediato** ou **salvar como trecho próprio** com 1 clique.
 
-### ✂️ 2. Edição de Trechos (Tempos de Início e Fim)
-- Além de marcar `Início` e `Fim` com o vídeo tocando, você pode **editar o tempo inicial e final** de qualquer trecho salvo a qualquer momento (clicando no botão `✏️ Editar`).
-- Suporta formatação `MM:SS` ou `HH:MM:SS` com validação automática.
+### 🔍 2. Busca Direta do YouTube (Couch Mode 🛋️)
+- **Adeus copiar e colar links!** Agora, se você estiver estudando no celular enquanto assiste TV, basta usar a nova barra de busca integrada.
+- Digite palavras-chave (ex: *"Steve Jobs Commencement"* ou *"Ted Talk Leadership"*) e o aplicativo busca diretamente no YouTube, permitindo adicionar o vídeo e sua transcrição correspondente com **1 único clique**.
 
-### 🔄 3. Algoritmo de Repetição Espaçada Anki (SM-2)
+### 🔄 3. Algoritmo de Repetição Espaçada Anki (SM-2) com Virada de Dia às 3:00 AM
 - Implementação fiel do algoritmo **SM-2 do Anki**, estruturado exatamente com a recomendação metodológica do Mairo Vergara:
   - 🔴 **De Novo (Errei) [1]**: Reinicia a aprendizagem do card (passos curtos ou volta para 1 dia), reduzindo o Fator de Facilidade sem penalidade excessiva.
   - 🟢 **Bom [3]**: Avança o intervalo pelo Fator de Facilidade de forma natural e consistente.
   - 🟡 **Difícil [2]**: Avanço conservador mantendo a revisão próxima.
   - ⚠️ **Por que não usamos "Fácil"?** Conforme explicado por Mairo Vergara, o botão "Fácil" no Anki inflaciona artificialmente o multiplicador e afasta o card para muito longe antes que ele esteja consolidado na memória de longo prazo. O app foca nos botões corretos para manter sua curva de retenção calibrada.
-- Previsão dinâmica dos próximos intervalos exibida diretamente em cada botão (ex: `< 10 min`, `1 dia`, `3 dias`, `6 dias`).
+- **Virada de Dia Anki-Style (3:00 AM local):** Seu dia de estudos não vira no meio da noite UTC ou do Brasil! Se você estuda até tarde de madrugada, o dia de revisão e sua ofensiva/streak continuam mantidos até as 3:00 da manhã do seu fuso horário local. Além disso, cartões programados para amanhã são liberados pontualmente às 3:00 AM, evitando tempos de espera em horas quebradas!
 
-### 💬 5. Legendas no Vídeo (Inglês, Português, Espanhol)
-- Seletor de legendas direto na barra de controle do player: escolha **Inglês** (para imersão total com listening), **Português** ou desative quando quiser testar seus ouvidos.
+### 🔊 4. Pronúncia Nativa Completa (Áudio TTS de Palavras e Sentenças)
+- O aplicativo utiliza síntese de voz nativa (`speechSynthesis` em inglês americano) de forma gratuita e rápida:
+  - **Ouvir Palavras:** Escute a palavra isolada clicando no ícone ao lado do termo principal.
+  - **Ouvir Sentenças i+1:** Escute a frase completa de exemplo com a entonação correta de orações clicando em **Ouvir Frase**.
+  - **Revisão Auditiva:** Durante a revisão do dia, você pode clicar em **Ouvir Frase** na tela da pergunta (antes de revelar a resposta) para tentar adivinhar o significado usando somente os seus ouvidos!
+
+### 📱 5. Instalação como Aplicativo Nativo PWA (Progressive Web App)
+- O aplicativo é uma PWA oficial e em conformidade técnica com o Google Chrome, Microsoft Edge e iOS Safari:
+  - Inclui um manifesto de instalação oficial (`/manifest.json`) em conformidade técnica, configurando o app em tela cheia e cor de tema escura personalizada.
+  - Possui um **Service Worker (`sw.js`)** dedicado que gerencia o cache de arquivos estáticos críticos, acelerando o carregamento do app e garantindo que ele carregue mesmo sem conexão com a internet ou em redes lentas de celular.
+  - **Sem Erros 404:** O sistema de roteamento SPA mapeia a entrada de inicialização no diretório `/public` garantindo instalação estável pós-build de produção.
 
 ### 🤖 6. Cards de Vocabulário i+1 com IA (Google Gemini 100% Grátis)
 - Extração de chunks, phrasal verbs e expressões reais do vídeo.
@@ -39,50 +48,10 @@ Tornam o estudo com vídeos instantâneo e sem precisar do mouse toda hora:
 - `←` e `→`: Voltar ou avançar 5 segundos
 - `1`, `2`, `3`: Avaliar card na tela de revisão (De Novo, Difícil, Bom)
 
-### 🔊 8. Pronúncia Nativa (Áudio TTS)
-- Botão de áudio `🔊` em cada palavra salva e card de revisão para ouvir a pronúncia em inglês nativo sem custo algum.
-
-### ☁️ 9. Banco Híbrido: Offline (IndexedDB) + Nuvem (Supabase)
+### ☁️ 8. Banco Híbrido: Offline (IndexedDB) + Nuvem (Supabase)
 - Seus dados ficam salvos localmente no navegador (IndexedDB) de forma rápida e segura.
 - Conecte ao **Supabase gratuito** (configurável em ⚙️ Configurações) para sincronizar seu histórico entre o computador e o celular em tempo real.
 - Caso ocorra qualquer oscilação de conexão com a nuvem, o app alterna automaticamente para o banco local sem travamentos.
-
----
-
-## 🚀 Como Iniciar o Aplicativo
-
-### No Computador (PC):
-1. Dê um duplo-clique no arquivo **`Contexto.bat`** (ou no atalho da Área de Trabalho).
-2. O servidor local multi-threaded iniciará e o app abrirá automaticamente no seu navegador padrão em:
-   ```
-   http://localhost:5500/index.html
-   ```
-
-### No Celular (Mesmo Wi-Fi):
-1. Inicie o app no computador pelo `Contexto.bat`.
-2. A janela preta do terminal exibirá o endereço de acesso para o celular, por exemplo:
-   ```
-   📱 No seu Celular: http://192.168.X.X:5500/index.html
-   ```
-3. Abra o navegador do celular (Chrome ou Safari) conectado na mesma rede Wi-Fi e digite esse endereço.
-4. *(Opcional)* No celular, toque no menu do navegador e escolha **"Adicionar à tela inicial"** para criar um ícone de app no celular.
-
----
-
-## ⚙️ Configurações Recomendadas
-
-### 1. Chave da IA (Google Gemini — Grátis)
-- O app já inclui uma chave padrão pré-configurada para uso imediato.
-- Se quiser usar sua própria chave pessoal gratuita:
-  1. Acesse [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey).
-  2. Crie uma chave de API gratuita.
-  3. No app Contexto, acesse **⚙️ Configurações**, cole sua chave e clique em **Salvar chave**.
-
-### 2. Sincronização em Nuvem (Supabase)
-- Caso queira manter seus vídeos e revisões sincronizados entre o PC e o celular:
-  1. Crie um projeto gratuito em [supabase.com](https://supabase.com).
-  2. No SQL Editor do Supabase, execute o script SQL disponível na tela de Configurações do app.
-  3. Preencha a URL e a Chave `anon` nas Configurações do app e clique em **Salvar Supabase**.
 
 ---
 
@@ -91,23 +60,26 @@ Tornam o estudo com vídeos instantâneo e sem precisar do mouse toda hora:
 ```text
 contexto_app/
 ├── index.html           # Página principal (Single Page Application)
-├── launch.py            # Servidor local multi-threaded para PC e Mobile
-├── Contexto.bat         # Inicializador rápido com 1 clique para Windows
+├── package.json         # Dependências do NodeJS e scripts de compilação
+├── vite.config.js       # Configurações do Vite (servidor, proxies e middlewares de transcrição/pesquisa)
+├── public/              # Pasta de arquivos estáticos distribuídos integralmente pós-compilação
+│   ├── manifest.json    # Manifesto de instalação da PWA (standalone)
+│   └── sw.js            # Service Worker oficial para cache e robustez offline
 ├── src/
 │   ├── ai.js            # Integração Gemini API (i+1, transcrições e trechos para loop)
-│   ├── db.js            # Camada híbrida IndexedDB + Supabase com fallback
+│   ├── db.js            # Camada híbrida IndexedDB + Supabase com fallback e timezone de 3:00 AM
 │   ├── srs.js           # Algoritmo de Repetição Espaçada SM-2 (Anki / Mairo Vergara)
 │   ├── youtube.js       # Player da YouTube IFrame API com A-B Loop contínuo
 │   ├── router.js        # Roteamento SPA por hash (#/videos, #/review, etc.)
 │   ├── styles.css       # Design System completo (Dark mode, glassmorphism e responsivo)
-│   ├── utils.js         # Formatadores de tempo, notificações toast e helpers
+│   ├── utils.js         # Formatadores de tempo com fuso de virada de dia, toasts e helpers
 │   ├── supabase.js      # Biblioteca cliente Supabase empacotada localmente
 │   └── pages/
 │       ├── dashboard.js   # Visão geral de progresso e streak
-│       ├── videos.js      # Catálogo e cadastro de novos vídeos do YouTube
-│       ├── videoPlayer.js # Player com loop, edição de trechos e IA
-│       ├── review.js      # Sessão de revisão Anki SM-2
-│       ├── vocabulary.js  # Gestão de vocabulário e áudio TTS
+│       ├── videos.js      # Catálogo e busca direta do YouTube (Couch Mode)
+│       ├── videoPlayer.js # Player com loop, edição de trechos, pronúncias e IA
+│       ├── review.js      # Sessão de revisão Anki SM-2 com suporte auditivo
+│       ├── vocabulary.js  # Gestão de vocabulário, status de cards e pronúncias de frases
 │       ├── practice.js    # Quiz gerado por IA
 │       └── settings.js    # Gerenciamento de chaves, nuvem e backups
 ```
