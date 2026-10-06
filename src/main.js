@@ -11,6 +11,7 @@ import { renderReview } from './pages/review.js';
 import { renderVocabulary } from './pages/vocabulary.js';
 import { renderPractice } from './pages/practice.js';
 import { renderSettings } from './pages/settings.js';
+import { renderPlaylist, cleanupPlaylist } from './pages/playlist.js';
 import { getDueReviewCount, getStudyStreak } from './db.js';
 import { destroyPlayer } from './youtube.js';
 import { openQuickCaptureModal } from './components/quickCaptureModal.js';
@@ -52,6 +53,11 @@ registerRoute('/settings', async (container, params) => {
   await renderSettings(container);
 });
 
+registerRoute('/playlist', async (container, params) => {
+  cleanupPreviousPage();
+  await renderPlaylist(container);
+});
+
 // --- Cleanup helper ---
 
 let previousRoute = null;
@@ -60,6 +66,9 @@ function cleanupPreviousPage() {
   // Destroy YouTube player when leaving a video page
   if (previousRoute && previousRoute.startsWith('/video/')) {
     cleanupVideoPlayer();
+  }
+  if (previousRoute === '/playlist') {
+    cleanupPlaylist();
   }
   previousRoute = getCurrentRoute();
 }

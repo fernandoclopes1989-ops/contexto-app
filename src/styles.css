@@ -1749,3 +1749,51 @@ textarea.input {
     justify-content: flex-start;
   }
 }
+
+/* --- Spotify Style Shadowing Player --- */
+.spotify-layout {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.spotify-player-card {
+  transition: all 0.3s ease;
+}
+
+.spotify-player-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+}
+
+.playlist-track-item:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
+.playlist-track-item.active {
+  background: rgba(99, 102, 241, 0.15) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+.btn-sm-playlist {
+  transition: all 0.2s ease;
+}
+
+.btn-sm-playlist.active {
+  background: var(--accent-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+@media (max-width: 992px) {
+  .spotify-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .spotify-tracklist-card {
+    max-height: 350px !important;
+  }
+}

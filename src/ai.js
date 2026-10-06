@@ -382,8 +382,8 @@ Reply ONLY with the JSON array.`;
     }
   }
 
-  // 2. Do NOT invent text if no real transcript is available!
-  console.warn('No real timed transcript available, returning empty array to avoid inventing text!');
+  // 2. If no real transcript is available, return empty array to prevent inventing fake text/audio
+  console.warn('Nenhuma transcrição sincronizada disponível para este vídeo.');
   return [];
 }
 

@@ -377,7 +377,14 @@ async function autoLoadTranscriptAndSegments(videoData) {
       if (segmentsList && (!segmentsList._segments || segmentsList._segments.length === 0)) {
         const segments = await detectUsefulSegments(ytVideoId, videoData.titulo, timed, 8);
         if (segments && segments.length > 0) {
-          segmentsList.innerHTML = segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
+          const saveAllButtonHtml = `
+            <div id="save-all-segments-container" style="margin-bottom: var(--space-4); display: flex; justify-content: flex-end;">
+              <button id="btn-save-all-segments" class="btn btn-secondary btn-sm" style="width: 100%; font-weight: 700; height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                💾 Salvar todos como Trechos de Estudo
+              </button>
+            </div>
+          `;
+          segmentsList.innerHTML = saveAllButtonHtml + segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
           segmentsList._segments = segments;
           segmentsList.classList.remove('hidden');
           const loading = document.getElementById('segments-loading');
@@ -852,19 +859,45 @@ function setupVideoPlayerListeners(container, videoId) {
         const segmentsList = document.getElementById('ai-segments-list');
         
         if (!segments || segments.length === 0) {
-          segmentsList.innerHTML = `<div class="text-center text-muted text-sm" style="padding: var(--space-6); line-height: 1.6;">
-            ⚠️ <strong>Legendas sincronizadas indisponíveis automaticamente para este vídeo.</strong><br>
-            Toque no botão <strong>"📋 Colar Legenda do YouTube"</strong> abaixo para colar a legenda copiada e gerar os trechos exatos de forma 100% automática!
-          </div>`;
+          segmentsList.innerHTML = `
+            <div class="text-center" style="padding: var(--space-6); background: rgba(99, 102, 241, 0.05); border-radius: var(--radius-md); border: 1px dashed var(--accent-secondary); margin-top: 10px;">
+              <div style="font-size: 2.2rem; margin-bottom: 8px;">📋</div>
+              <strong style="color: var(--text-primary); font-size: 14px;">Transcrição necessária para sincronia 100% exata</strong>
+              <p class="text-sm text-muted mt-2" style="max-width: 440px; margin: 8px auto; line-height: 1.5;">
+                Para que o áudio do vídeo bata <strong>exatamente com o que é falado</strong> (sem inventar frases), precisamos da transcrição do YouTube. Cole abaixo para fatiar na hora!
+              </p>
+              <button id="btn-quick-open-paste" class="btn btn-primary btn-sm mt-3" style="padding: 8px 16px; font-weight: 600;">
+                📋 Abrir caixa para colar transcrição
+              </button>
+            </div>
+          `;
+          showToast('Cole a transcrição do vídeo para sincronia 100% exata!', 'info');
+          const quickOpenBtn = segmentsList.querySelector('#btn-quick-open-paste');
+          if (quickOpenBtn) {
+            quickOpenBtn.addEventListener('click', () => {
+              const pasteBox = document.getElementById('paste-transcript-box');
+              if (pasteBox) {
+                pasteBox.classList.remove('hidden');
+                document.getElementById('pasted-transcript-input')?.focus();
+              }
+            });
+          }
         } else {
-          segmentsList.innerHTML = segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
+          const saveAllButtonHtml = `
+            <div id="save-all-segments-container" style="margin-bottom: var(--space-4); display: flex; justify-content: flex-end;">
+              <button id="btn-save-all-segments" class="btn btn-secondary btn-sm" style="width: 100%; font-weight: 700; height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                💾 Salvar todos como Trechos de Estudo
+              </button>
+            </div>
+          `;
+          segmentsList.innerHTML = saveAllButtonHtml + segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
           
           // Store segments for reference
           segmentsList._segments = segments;
+          showToast(`${segments.length} trechos reais sincronizados para Shadowing! 🎧`, 'success');
         }
         
         segmentsList.classList.remove('hidden');
-        showToast(`${segments.length} trechos prontos para Shadowing! 🎧`, 'success');
         
       } catch (err) {
         console.error('Shadowing detection error:', err);
@@ -1014,12 +1047,21 @@ function setupVideoPlayerListeners(container, videoId) {
       document.getElementById('ai-results-container').classList.add('hidden');
       
       try {
-        const { extractVocabFromTranscript, generateIPlusOneAnalysis, fetchTranscriptText } = await import('../ai.js');
+        const { extractVocabFromTranscript, generateIPlusOneAnalysis, fetchTranscriptText, loadVideoTranscript, fetchTranscriptTimed } = await import('../ai.js');
         
-        // Try to get a real transcript or use video title
+        // Try to get a real timed transcript first
         let transcript = '';
+        let timedTranscript = [];
         try {
-          transcript = await fetchTranscriptText(currentVideoData.youtube_video_id);
+          timedTranscript = loadVideoTranscript(currentVideoData.youtube_video_id);
+          if (!timedTranscript || timedTranscript.length === 0) {
+            timedTranscript = await fetchTranscriptTimed(currentVideoData.youtube_video_id);
+          }
+          if (timedTranscript && timedTranscript.length > 0) {
+            transcript = timedTranscript.map(item => item.text || '').join(' ');
+          } else {
+            transcript = await fetchTranscriptText(currentVideoData.youtube_video_id);
+          }
         } catch (e) {
           transcript = '';
         }
@@ -1029,15 +1071,51 @@ function setupVideoPlayerListeners(container, videoId) {
         const resultsList = document.getElementById('ai-results-list');
         resultsList.innerHTML = ''; // clear
         
+        // Helper to find best timestamp from transcript
+        const findBestTimestamp = (originalContext, timed) => {
+          if (!timed || timed.length === 0 || !originalContext) return 0;
+          const cleanContext = originalContext.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+          if (!cleanContext) return 0;
+          
+          for (const line of timed) {
+            const cleanLine = (line.text || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+            if (cleanLine && (cleanContext.includes(cleanLine) || cleanLine.includes(cleanContext))) {
+              return Math.round(line.start);
+            }
+          }
+          
+          const contextWords = cleanContext.split(/\s+/).filter(w => w.length > 3);
+          if (contextWords.length > 0) {
+            for (const line of timed) {
+              const cleanLine = (line.text || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+              const matchCount = contextWords.filter(word => cleanLine.includes(word)).length;
+              if (matchCount >= Math.min(3, contextWords.length)) {
+                return Math.round(line.start);
+              }
+            }
+          }
+          return 0;
+        };
+
         // Para cada palavra extraída, geramos o card 1+1 e já salvamos
         for (const item of extracted) {
            const analysis = await generateIPlusOneAnalysis(item.word_or_expression, item.original_context);
+           const itemTimestamp = findBestTimestamp(item.original_context, timedTranscript);
            
+           const tsBadgeHtml = itemTimestamp > 0 ? `
+             <button class="btn btn-ghost btn-sm btn-preview-play-ts" data-timestamp="${itemTimestamp}" style="padding: 2px 6px; font-size: 11px; margin-left: 6px; color: var(--accent-secondary); border: 1px solid rgba(99, 102, 241, 0.2); background: rgba(99, 102, 241, 0.05);" title="Ouvir este momento no vídeo">
+               📍 ${formatTime(itemTimestamp)}
+             </button>
+           ` : '';
+
            // Criar o HTML para mostrar o resultado
            const itemHtml = document.createElement('div');
            itemHtml.className = 'vocab-item';
            itemHtml.innerHTML = `
-             <div class="vocab-word">✨ ${escapeHtml(item.word_or_expression)} <span class="text-xs" style="color: var(--accent-secondary);">(${escapeHtml(analysis.type || 'chunk')})</span></div>
+             <div class="vocab-word" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+               <span>✨ ${escapeHtml(item.word_or_expression)} <span class="text-xs" style="color: var(--accent-secondary);">(${escapeHtml(analysis.type || 'chunk')})</span></span>
+               ${tsBadgeHtml}
+             </div>
              <div class="vocab-context mt-2"><strong>🎬 Do vídeo:</strong> "${escapeHtml(item.original_context)}"</div>
              <div class="vocab-context mt-1"><strong>📖 Significado (i+1):</strong> ${escapeHtml(analysis.definition_en || '')}</div>
              <div class="vocab-context mt-1"><strong>🧠 Exemplo (i+1):</strong> "${escapeHtml(analysis.i_plus_one_example || '')}"</div>
@@ -1045,20 +1123,31 @@ function setupVideoPlayerListeners(container, videoId) {
              <button class="btn btn-secondary btn-sm mt-3 w-100 btn-save-ai-item">✅ Salvar no meu Deck</button>
            `;
            
+           // Lógica para reproduzir o tempo ao clicar no badge
+           const playTsBtn = itemHtml.querySelector('.btn-preview-play-ts');
+           if (playTsBtn) {
+             playTsBtn.addEventListener('click', (e) => {
+               e.stopPropagation();
+               seekTo(itemTimestamp);
+               play();
+               startTimeUpdater();
+             });
+           }
+
            // Lógica para o botão "Salvar no Deck"
            const saveBtn = itemHtml.querySelector('.btn-save-ai-item');
            saveBtn.addEventListener('click', async () => {
              saveBtn.disabled = true;
              saveBtn.textContent = '⏳ Salvando...';
              
-             // Salvar no BD
+             // Salvar no BD com o timestamp exato e a frase REAL falada no vídeo!
              const vocabId = await addVocabulario({
                 video_id: videoId,
                 clip_id: null,
-                timestamp: 0,
+                timestamp: itemTimestamp,
                 palavra_ou_expressao: item.word_or_expression,
-                frase_contexto: analysis.i_plus_one_example,
-                traducao_significado: analysis.definition_en,
+                frase_contexto: item.original_context, // Frase REAL falada no vídeo
+                traducao_significado: `${analysis.definition_en || ''}\n\n🧠 Exemplo (i+1): "${analysis.i_plus_one_example || ''}"`,
                 data_criacao: new Date().toISOString()
               });
 
@@ -1254,6 +1343,45 @@ function setupVideoPlayerListeners(container, videoId) {
         } catch (err) {
           showToast('Erro ao salvar trecho', 'error');
         }
+      }
+      return;
+    }
+
+    // AI Segment: Save ALL as clips
+    const saveAllSegsBtn = e.target.closest('#btn-save-all-segments');
+    if (saveAllSegsBtn) {
+      const segmentsList = document.getElementById('ai-segments-list');
+      const segments = segmentsList._segments;
+      if (segments && segments.length > 0) {
+        saveAllSegsBtn.disabled = true;
+        saveAllSegsBtn.textContent = '⏳ Salvando todos...';
+        
+        let countSaved = 0;
+        for (const seg of segments) {
+          try {
+            await addClip({
+              video_id: videoId,
+              nome: seg.title,
+              tempo_inicio: seg.start_seconds,
+              tempo_fim: seg.end_seconds
+            });
+            countSaved++;
+          } catch (err) {
+            console.error('Failed to save segment as clip:', err);
+          }
+        }
+        
+        saveAllSegsBtn.textContent = 'Todos salvos! ✅';
+        refreshClipList(videoId);
+        refreshTabCounts(videoId);
+        
+        // Disable individual buttons
+        container.querySelectorAll('.save-ai-segment-btn').forEach(btn => {
+          btn.textContent = 'Salvo! ✅';
+          btn.disabled = true;
+        });
+        
+        showToast(`🎉 ${countSaved} trechos salvos no seu deck com sucesso!`, 'success');
       }
       return;
     }
