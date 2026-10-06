@@ -48,9 +48,14 @@ export async function renderVideoPlayer(container, params) {
 
     <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
       <h1 class="page-title" style="font-size: var(--font-xl); margin: 0;">${escapeHtml(currentVideoData.titulo)}</h1>
-      <button class="btn btn-secondary btn-sm btn-trigger-transcript-modal" style="display: flex; align-items: center; gap: 6px;" title="Importar Transcrição do YouTube (Parse & Sync)">
-        <span>📋</span> <strong>Parse & Sync Transcrição</strong>
-      </button>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <a href="#/playlist" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 6px; font-weight: 700; text-decoration: none;" title="Ouvir este vídeo no Spotify Player">
+          <span>📻</span> <span>Ouvir no Player Spotify</span>
+        </a>
+        <button class="btn btn-secondary btn-sm btn-trigger-transcript-modal" style="display: flex; align-items: center; gap: 6px;" title="Importar Transcrição do YouTube (Parse & Sync)">
+          <span>📋</span> <strong>Parse & Sync Transcrição</strong>
+        </button>
+      </div>
     </div>
 
     <!-- Player -->
@@ -341,8 +346,9 @@ export async function renderVideoPlayer(container, params) {
     </div>
   `;
 
-  // Initialize YouTube player
-  await initPlayer(currentVideoData.youtube_video_id);
+  // Initialize YouTube player with optional starting timestamp (?t=32)
+  const startTimestamp = params?.t ? parseFloat(params.t) : null;
+  await initPlayer(currentVideoData.youtube_video_id, startTimestamp);
 
   // Setup all event listeners
   setupVideoPlayerListeners(container, videoId);
@@ -372,24 +378,41 @@ async function autoLoadTranscriptAndSegments(videoData) {
         countSpan.textContent = timed.length;
         statusDiv.classList.remove('hidden');
       }
+    }
 
-      const segmentsList = document.getElementById('ai-segments-list');
-      if (segmentsList && (!segmentsList._segments || segmentsList._segments.length === 0)) {
-        const segments = await detectUsefulSegments(ytVideoId, videoData.titulo, timed, 8);
-        if (segments && segments.length > 0) {
-          const saveAllButtonHtml = `
-            <div id="save-all-segments-container" style="margin-bottom: var(--space-4); display: flex; justify-content: flex-end;">
-              <button id="btn-save-all-segments" class="btn btn-secondary btn-sm" style="width: 100%; font-weight: 700; height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                💾 Salvar todos como Trechos de Estudo
-              </button>
-            </div>
-          `;
-          segmentsList.innerHTML = saveAllButtonHtml + segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
-          segmentsList._segments = segments;
-          segmentsList.classList.remove('hidden');
-          const loading = document.getElementById('segments-loading');
-          if (loading) loading.classList.add('hidden');
+    const segmentsList = document.getElementById('ai-segments-list');
+    if (segmentsList && (!segmentsList._segments || segmentsList._segments.length === 0)) {
+      const segments = await detectUsefulSegments(ytVideoId, videoData.titulo, timed, 8);
+      if (segments && segments.length > 0) {
+        // Check if video already has clips in database
+        const existingClips = await getClipsByVideo(videoData.id);
+        if (existingClips.length === 0) {
+          for (const seg of segments) {
+            await addClip({
+              video_id: videoData.id,
+              nome: seg.title,
+              tempo_inicio: seg.start_seconds,
+              tempo_fim: seg.end_seconds
+            });
+          }
+          await refreshClipList(videoData.id);
+          await refreshTabCounts(videoData.id);
         }
+
+        segmentsList.innerHTML = `
+          <div style="background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-md); padding: 10px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; font-weight: 700; color: #34d399;">
+              ✓ ${segments.length} trechos salvos no deck para Shadowing!
+            </span>
+            <a href="#/playlist" class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 12px; font-weight: 700;">
+              📻 Ouvir na Playlist
+            </a>
+          </div>
+        ` + segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
+        segmentsList._segments = segments;
+        segmentsList.classList.remove('hidden');
+        const loading = document.getElementById('segments-loading');
+        if (loading) loading.classList.add('hidden');
       }
     }
   } catch (err) {
@@ -397,11 +420,19 @@ async function autoLoadTranscriptAndSegments(videoData) {
   }
 }
 
-async function initPlayer(ytVideoId) {
+async function initPlayer(ytVideoId, startTimestamp = null) {
   try {
+    const startSec = (startTimestamp && !isNaN(startTimestamp)) ? startTimestamp : 0;
     await createPlayer('yt-player', ytVideoId, {
+      startSeconds: startSec,
       onReady: () => {
         updateTimeDisplay();
+        if (startTimestamp && !isNaN(startTimestamp)) {
+          seekTo(startTimestamp);
+          play();
+          startTimeUpdater();
+          showToast(`Tocando a partir de ${formatTime(startTimestamp)} 🎬`, 'info');
+        }
       },
       onStateChange: (event) => {
         // Update time display periodically when playing
@@ -513,7 +544,11 @@ function renderAISegmentItem(segment, index) {
           ${syncBadge}
         </div>
         <div class="text-sm text-muted mt-1">${escapeHtml(segment.reason)}</div>
-        <div class="clip-time mt-1">${formatTime(segment.start_seconds)} → ${formatTime(segment.end_seconds)}</div>
+        <div class="clip-time mt-1" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <span>${formatTime(segment.start_seconds)} → ${formatTime(segment.end_seconds)}</span>
+          <button type="button" class="btn btn-ghost btn-sm adjust-seg-time-btn" data-index="${index}" data-delta="-1" style="padding: 1px 6px; font-size: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;" title="Adiantar início em 1s">-1s</button>
+          <button type="button" class="btn btn-ghost btn-sm adjust-seg-time-btn" data-index="${index}" data-delta="1" style="padding: 1px 6px; font-size: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;" title="Atrasar início em 1s">+1s</button>
+        </div>
       </div>
       <div class="clip-actions">
         <button class="btn btn-secondary btn-sm loop-ai-segment-btn" data-start="${segment.start_seconds}" data-end="${segment.end_seconds}" title="Loop">🔁 Loop</button>
@@ -851,50 +886,52 @@ function setupVideoPlayerListeners(container, videoId) {
         const count = countSelect ? parseInt(countSelect.value, 10) : 8;
 
         const { detectUsefulSegments } = await import('../ai.js');
-        const segments = await detectUsefulSegments(currentVideoData.youtube_video_id, currentVideoData.titulo, null, count, true);
+        const segments = await detectUsefulSegments(currentVideoData.youtube_video_id, currentVideoData.titulo, null, count);
         
         currentVideoData.has_transcript = true;
         try { await updateVideo(currentVideoData); } catch (e) {}
         
         const segmentsList = document.getElementById('ai-segments-list');
         
-        if (!segments || segments.length === 0) {
-          segmentsList.innerHTML = `
-            <div class="text-center" style="padding: var(--space-6); background: rgba(99, 102, 241, 0.05); border-radius: var(--radius-md); border: 1px dashed var(--accent-secondary); margin-top: 10px;">
-              <div style="font-size: 2.2rem; margin-bottom: 8px;">📋</div>
-              <strong style="color: var(--text-primary); font-size: 14px;">Transcrição necessária para sincronia 100% exata</strong>
-              <p class="text-sm text-muted mt-2" style="max-width: 440px; margin: 8px auto; line-height: 1.5;">
-                Para que o áudio do vídeo bata <strong>exatamente com o que é falado</strong> (sem inventar frases), precisamos da transcrição do YouTube. Cole abaixo para fatiar na hora!
-              </p>
-              <button id="btn-quick-open-paste" class="btn btn-primary btn-sm mt-3" style="padding: 8px 16px; font-weight: 600;">
-                📋 Abrir caixa para colar transcrição
-              </button>
-            </div>
-          `;
-          showToast('Cole a transcrição do vídeo para sincronia 100% exata!', 'info');
-          const quickOpenBtn = segmentsList.querySelector('#btn-quick-open-paste');
-          if (quickOpenBtn) {
-            quickOpenBtn.addEventListener('click', () => {
-              const pasteBox = document.getElementById('paste-transcript-box');
-              if (pasteBox) {
-                pasteBox.classList.remove('hidden');
-                document.getElementById('pasted-transcript-input')?.focus();
-              }
-            });
+        if (segments && segments.length > 0) {
+          // Auto-save detected segments into database (prevent duplicate timestamps)
+          const currentClips = await getClipsByVideo(videoId);
+          let countSaved = 0;
+          for (const seg of segments) {
+            const alreadyExists = currentClips.some(c => 
+              Math.abs(c.tempo_inicio - seg.start_seconds) < 2 || 
+              c.nome?.toLowerCase() === seg.title?.toLowerCase()
+            );
+            if (!alreadyExists) {
+              await addClip({
+                video_id: videoId,
+                nome: seg.title,
+                tempo_inicio: seg.start_seconds,
+                tempo_fim: seg.end_seconds
+              });
+              countSaved++;
+            }
           }
-        } else {
-          const saveAllButtonHtml = `
-            <div id="save-all-segments-container" style="margin-bottom: var(--space-4); display: flex; justify-content: flex-end;">
-              <button id="btn-save-all-segments" class="btn btn-secondary btn-sm" style="width: 100%; font-weight: 700; height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                💾 Salvar todos como Trechos de Estudo
-              </button>
+
+          await refreshClipList(videoId);
+          await refreshTabCounts(videoId);
+
+          segmentsList.innerHTML = `
+            <div style="background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-md); padding: 10px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 13px; font-weight: 700; color: #34d399;">
+                ✓ ${segments.length} trechos salvos no deck (${countSaved} novos)!
+              </span>
+              <a href="#/playlist" class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 12px; font-weight: 700;">
+                📻 Ouvir na Playlist
+              </a>
             </div>
-          `;
-          segmentsList.innerHTML = saveAllButtonHtml + segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
+          ` + segments.map((seg, i) => renderAISegmentItem(seg, i)).join('');
           
-          // Store segments for reference
           segmentsList._segments = segments;
-          showToast(`${segments.length} trechos reais sincronizados para Shadowing! 🎧`, 'success');
+          showToast(`🎧 ${segments.length} trechos gerados e sincronizados para Shadowing!`, 'success');
+        } else {
+          segmentsList.innerHTML = `<div class="text-center text-muted text-sm" style="padding: var(--space-6);">Nenhum trecho gerado. Tente novamente em instantes.</div>`;
+          showToast('Tente gerar novamente em instantes', 'error');
         }
         
         segmentsList.classList.remove('hidden');
@@ -1316,6 +1353,34 @@ function setupVideoPlayerListeners(container, videoId) {
       seekTo(parseFloat(playSegBtn.dataset.start));
       play();
       startTimeUpdater();
+      return;
+    }
+
+    // AI Segment: Adjust time
+    const adjustBtn = e.target.closest('.adjust-seg-time-btn');
+    if (adjustBtn) {
+      const idx = parseInt(adjustBtn.dataset.index, 10);
+      const delta = parseInt(adjustBtn.dataset.delta, 10);
+      const segmentsList = document.getElementById('ai-segments-list');
+      if (segmentsList && segmentsList._segments && segmentsList._segments[idx]) {
+        const seg = segmentsList._segments[idx];
+        seg.start_seconds = Math.max(0, seg.start_seconds + delta);
+        if (seg.end_seconds <= seg.start_seconds) seg.end_seconds = seg.start_seconds + 4;
+        
+        const segItem = adjustBtn.closest('.ai-segment-item');
+        if (segItem) {
+          const timeSpan = segItem.querySelector('.clip-time span');
+          if (timeSpan) timeSpan.textContent = `${formatTime(seg.start_seconds)} → ${formatTime(seg.end_seconds)}`;
+          const loopBtn = segItem.querySelector('.loop-ai-segment-btn');
+          if (loopBtn) {
+            loopBtn.dataset.start = seg.start_seconds;
+            loopBtn.dataset.end = seg.end_seconds;
+          }
+          const playBtn = segItem.querySelector('.play-ai-segment-btn');
+          if (playBtn) playBtn.dataset.start = seg.start_seconds;
+        }
+        showToast(`Tempo ajustado: ${formatTime(seg.start_seconds)}`, 'info');
+      }
       return;
     }
 

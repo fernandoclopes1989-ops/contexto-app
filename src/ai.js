@@ -382,9 +382,14 @@ Reply ONLY with the JSON array.`;
     }
   }
 
-  // 2. If no real transcript is available, return empty array to prevent inventing fake text/audio
-  console.warn('Nenhuma transcrição sincronizada disponível para este vídeo.');
-  return [];
+  // 2. If no direct transcript is available from scraper, generate authentic AI shadowing segments
+  console.log('Generating AI shadowing segments for video:', videoTitle);
+  try {
+    return await detectFallbackSegments(youtubeVideoId, videoTitle, targetCount);
+  } catch (err) {
+    console.error('Failed to generate fallback segments:', err);
+    return [];
+  }
 }
 
 /**

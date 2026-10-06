@@ -126,11 +126,13 @@ export async function renderVocabulary(container) {
       return;
     }
 
-    // Go to video
+    // Go to video with timestamp
     const videoLink = e.target.closest('.vocab-video-link');
     if (videoLink) {
       e.preventDefault();
-      window.location.hash = `/video/${videoLink.dataset.videoId}`;
+      const ts = videoLink.dataset.timestamp;
+      const targetHash = ts && !isNaN(Number(ts)) ? `/video/${videoLink.dataset.videoId}?t=${Math.round(Number(ts))}` : `/video/${videoLink.dataset.videoId}`;
+      window.location.hash = targetHash;
       return;
     }
 
@@ -183,8 +185,8 @@ function renderFullVocabItem(vocab, reviewCard, video) {
         <span>📅 ${formatDate(vocab.data_criacao)}</span>
         <span>🔄 ${nextReview}</span>
         ${video ? `
-          <a class="vocab-video-link" data-video-id="${video.id}" href="#/video/${video.id}" style="color: var(--accent-secondary); text-decoration: none; cursor: pointer;">
-            🎬 ${escapeHtml(video.titulo).substring(0, 40)}${video.titulo.length > 40 ? '...' : ''}
+          <a class="vocab-video-link" data-video-id="${video.id}" data-timestamp="${vocab.timestamp || ''}" href="#/video/${video.id}${vocab.timestamp ? `?t=${Math.round(vocab.timestamp)}` : ''}" style="color: var(--accent-secondary); text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
+            🎬 ${escapeHtml(video.titulo).substring(0, 35)}${video.titulo.length > 35 ? '...' : ''} ${vocab.timestamp ? `(▶️ ${formatTime(vocab.timestamp)})` : ''}
           </a>
         ` : ''}
         ${vocab.timestamp ? `<span>📍 ${formatTime(vocab.timestamp)}</span>` : ''}

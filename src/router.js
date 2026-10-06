@@ -32,11 +32,19 @@ export function getCurrentRoute() {
  * Supports simple params like /video/:id
  */
 function matchRoute(hash) {
-  const path = hash.replace('#', '') || '/';
+  const fullRaw = hash.replace('#', '') || '/';
+  const [path, queryString] = fullRaw.split('?');
+  const queryParams = {};
+  if (queryString) {
+    const searchParams = new URLSearchParams(queryString);
+    for (const [key, val] of searchParams.entries()) {
+      queryParams[key] = val;
+    }
+  }
 
   // Try exact match first
   if (routes[path]) {
-    return { handler: routes[path], params: {} };
+    return { handler: routes[path], params: { ...queryParams } };
   }
 
   // Try parameterized routes
@@ -46,7 +54,7 @@ function matchRoute(hash) {
 
     if (routeParts.length !== pathParts.length) continue;
 
-    const params = {};
+    const params = { ...queryParams };
     let match = true;
 
     for (let i = 0; i < routeParts.length; i++) {

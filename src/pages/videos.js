@@ -118,6 +118,7 @@ async function renderVideoCards(videos) {
             <span class="badge">${clips.length} trecho${clips.length !== 1 ? 's' : ''}</span>
             <span class="badge">${vocab.length} palavra${vocab.length !== 1 ? 's' : ''}</span>
             ${hasTranscriptBadge}
+            <a href="#/playlist" class="btn btn-ghost btn-sm" title="Ouvir no Player Spotify" style="padding: 2px 6px; font-size: 13px; text-decoration: none;" onclick="event.stopPropagation()">📻</a>
             <button class="btn btn-ghost btn-sm delete-video-btn" data-video-id="${video.id}" title="Remover vídeo">🗑️</button>
           </div>
         </div>

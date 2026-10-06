@@ -166,7 +166,9 @@ function renderCurrentCard(container) {
       videoLink.addEventListener('click', (e) => {
         e.preventDefault();
         const videoId = videoLink.dataset.videoId;
-        window.location.hash = `/video/${videoId}`;
+        const ts = videoLink.dataset.timestamp;
+        const targetHash = ts && !isNaN(Number(ts)) ? `/video/${videoId}?t=${Math.round(Number(ts))}` : `/video/${videoId}`;
+        window.location.hash = targetHash;
       });
     }
 
@@ -213,10 +215,11 @@ function renderAnswer(card, vocab, video) {
     </div>
 
     ${video ? `
-      <a class="review-video-link" data-video-id="${video.id}" href="#/video/${video.id}">
-        🎬 Reassistir trecho no vídeo "${escapeHtml(video.titulo)}"
-        ${vocab.timestamp ? ` (${formatTime(vocab.timestamp)})` : ''}
-      </a>
+      <div style="margin-top: 14px;">
+        <a class="review-video-link btn btn-secondary btn-sm" data-video-id="${video.id}" data-timestamp="${vocab.timestamp || ''}" href="#/video/${video.id}${vocab.timestamp ? `?t=${Math.round(vocab.timestamp)}` : ''}" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; font-weight: 600; text-decoration: none;">
+          <span>▶️</span> <span>Reassistir trecho no vídeo original ${vocab.timestamp ? `(${formatTime(vocab.timestamp)})` : ''}</span>
+        </a>
+      </div>
     ` : ''}
 
     <div class="review-buttons-anki mt-6">
