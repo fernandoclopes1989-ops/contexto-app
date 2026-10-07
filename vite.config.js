@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import { YoutubeTranscript } from 'youtube-transcript';
 
 export default defineConfig({
   root: '.',
@@ -24,37 +23,63 @@ export default defineConfig({
               return;
             }
 
-            // 1. Fetch transcript using official/innertube extraction
-            try {
-              const raw = await YoutubeTranscript.fetchTranscript(videoId);
-              if (Array.isArray(raw) && raw.length > 0) {
-                const formatted = raw.map(item => ({
-                  start: Math.round((item.offset / 1000) * 10) / 10,
-                  duration: Math.max(2.5, Math.round((item.duration / 1000) * 10) / 10),
-                  text: (item.text || '')
-                    .replace(/&amp;/g, '&')
-                    .replace(/&#39;/g, "'")
-                    .replace(/&quot;/g, '"')
-                    .replace(/&lt;/g, '<')
-                    .replace(/&gt;/g, '>')
-                    .replace(/\n+/g, ' ')
-                    .trim()
-                })).filter(i => i.text.length > 0 && !i.text.startsWith('[Music]') && !i.text.startsWith('[Applause]'));
-
-                if (formatted.length > 0) {
-                  res.statusCode = 200;
-                  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-                  res.end(JSON.stringify(formatted));
-                  return;
+            // Execute Python API locally
+            const { exec } = await import('child_process');
+            exec(`python api/transcript.py`, { 
+              env: { ...process.env, REQUEST_METHOD: 'GET', QUERY_STRING: `videoId=${videoId}` } 
+            }, (error, stdout, stderr) => {
+              const pyScript = `
+import sys, json
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi
+    ytt = YouTubeTranscriptApi()
+    t_list = ytt.list(video_id='${videoId}')
+    
+    transcripts = None
+    try:
+        transcripts = t_list.find_transcript(['en', 'en-US', 'en-GB']).fetch()
+    except Exception:
+        pass
+        
+    if not transcripts:
+        try:
+            transcripts = t_list.find_generated_transcript(['en', 'en-US', 'en-GB']).fetch()
+        except Exception:
+            pass
+            
+    if not transcripts:
+        for t in t_list:
+            transcripts = t.fetch()
+            break
+            
+    if not transcripts:
+        transcripts = ytt.fetch('${videoId}', languages=['en', 'en-US', 'en-GB', 'pt', 'pt-BR'])
+        
+    data = [{'text': t['text'], 'start': round(t['start'], 2), 'duration': round(t['duration'], 2)} for t in transcripts]
+    print(json.dumps(data))
+except Exception as e:
+    print(json.dumps({"error": str(e)}))
+`;
+              exec(`python -c "${pyScript.replace(/\n/g, '\\n').replace(/"/g, '\\"')}"`, { maxBuffer: 1024 * 1024 * 10 }, (err, out, errOut) => {
+                try {
+                  const data = JSON.parse(out);
+                  if (data.error) {
+                    res.statusCode = 404;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify(data));
+                  } else {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                    res.end(JSON.stringify(data));
+                  }
+                } catch (e) {
+                  res.statusCode = 500;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ error: 'Failed to parse python output: ' + e.message }));
                 }
-              }
-            } catch (ytErr) {
-              console.warn(`[transcript-api] YoutubeTranscript failed for ${videoId}:`, ytErr.message);
-            }
+              });
+            });
 
-            res.statusCode = 404;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ error: 'Transcript unavailable for this video' }));
           } catch (e) {
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json');
