@@ -393,152 +393,145 @@ Reply ONLY with the JSON array.`;
 }
 
 /**
- * Curated registry of authentic transcripts with exact timestamps for study videos.
- * Guaranteed 100% fidelity to spoken dialogue — zero hallucinations, zero fake audio.
+ * Client-side caption proxy instances (Invidious & Piped).
+ * These are decentralized YouTube frontend alternatives that expose REST APIs
+ * for fetching video metadata and captions, bypassing YouTube datacenter IP blocking.
+ * Multiple instances are tried in sequence for maximum availability.
  */
-const KNOWN_VIDEO_TRANSCRIPTS = {
-  '_Z5-P9v3F8w': [
-    { start: 14, duration: 5, text: "See, I never thought that I could walk through fire" },
-    { start: 19, duration: 5, text: "I never thought that I could take the burn" },
-    { start: 25, duration: 6, text: "I came so far to throw away this dream" },
-    { start: 34, duration: 6, text: "Here I go, just talking with my heart" },
-    { start: 41, duration: 6, text: "I gotta stay strong, gotta push along" },
-    { start: 48, duration: 7, text: "Now he's bigger than me, taller than me, and he's older than me" },
-    { start: 56, duration: 6, text: "I will never say never! (I will fight!)" },
-    { start: 62, duration: 5, text: "I will fight till forever! (Make it right!)" },
-    { start: 68, duration: 8, text: "Whenever you knock me down, I will not stay on the ground" },
-    { start: 77, duration: 6, text: "Pick it up, pick it up, pick it up, up, up" },
-    { start: 91, duration: 5, text: "Here we go! Guess who? Jaden!" },
-    { start: 96, duration: 7, text: "They told me I was too small, they told me that I was too weak" },
-    { start: 103, duration: 7, text: "And I am about to prove to you all, I never say never" },
-    { start: 111, duration: 7, text: "Like Kobe in the fourth, bounce back with every hit" }
-  ],
-  'F8Rwz3KWFHA': [
-    { start: 7, duration: 4, text: "I want to begin by saying what a pleasure it was for" },
-    { start: 12, duration: 5, text: "Michelle and me to welcome Prime Minister May to the White House" },
-    { start: 31, duration: 4, text: "The Prime Minister continues to be a steadying influence" },
-    { start: 45, duration: 5, text: "Our two nations share a special relationship that has endured" },
-    { start: 728, duration: 4, text: "Coming up with solutions that benefit both of our economies" }
-  ],
-  'arj7oStGLkU': [
-    { start: 12, duration: 6, text: "So in college, I was a government major, which means I had to write a lot of papers" },
-    { start: 45, duration: 5, text: "And this was my plan. I wanted to be productive" },
-    { start: 120, duration: 6, text: "There's a Rational Decision-Maker and an Instant Gratification Monkey" },
-    { start: 240, duration: 5, text: "The Panic Monster is dormant most of the time" },
-    { start: 477, duration: 4, text: "I reached out to my friend for help with this situation" }
-  ],
-  'A3LVuXUdVv8': [
-    { start: 15, duration: 6, text: "Today we are looking at the difference between have been and had been" },
-    { start: 42, duration: 6, text: "Have been connects the past with the present moment" },
-    { start: 66, duration: 6, text: "Have you ever been to New York? Answer: No, I've never been" },
-    { start: 115, duration: 6, text: "Had been refers to an action completed before another past event" }
-  ],
-  'i-_B3KPB6so': [
-    { start: 18, duration: 5, text: "I do all my own stunts, no matter how dangerous it gets" },
-    { start: 35, duration: 6, text: "Let me show you where the surgery happened right here" },
-    { start: 62, duration: 5, text: "Steve Harvey could not believe what he was seeing" }
-  ],
-  'KL89K07KxYc': [
-    { start: 25, duration: 6, text: "Native English speakers use connected speech when talking fast" },
-    { start: 58, duration: 5, text: "Notice how they link consonants to vowels seamlessly" },
-    { start: 110, duration: 6, text: "What are you up to this weekend? Sounds like 'whaddya up to'" }
-  ],
-  '_XXwZROjckI': [
-    { start: 30, duration: 6, text: "Walking through Manhattan early in the morning is unlike anything else" },
-    { start: 75, duration: 6, text: "The energy on the subway platform is already picking up" }
-  ]
-};
+const CAPTION_PROXY_INSTANCES = [
+  { type: 'invidious', base: 'https://inv.nadeko.net' },
+  { type: 'invidious', base: 'https://iv.datura.network' },
+  { type: 'invidious', base: 'https://invidious.nerdvpn.de' },
+  { type: 'invidious', base: 'https://yt.cdaut.de' },
+  { type: 'invidious', base: 'https://invidious.protokolla.fi' },
+  { type: 'piped', base: 'https://pipedapi.kavin.rocks' },
+  { type: 'piped', base: 'https://api.piped.projectsegfau.lt' },
+];
 
 /**
- * Smart AI fallback for shadowing segments when direct timed captions aren't scraped
+ * Parse WebVTT caption format into { start, duration, text } objects.
+ * Handles YouTube auto-generated captions with inline timing tags.
+ */
+function parseVTTCaption(vttText) {
+  if (!vttText) return null;
+  const items = [];
+  const blocks = vttText.split(/\n\s*\n/);
+  for (const block of blocks) {
+    const lines = block.trim().split('\n');
+    const tsIdx = lines.findIndex(l => l.includes('-->'));
+    if (tsIdx === -1) continue;
+    const m = lines[tsIdx].match(
+      /(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{3})\s*-->\s*(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{3})/
+    );
+    if (!m) continue;
+    const start = (parseInt(m[1]||0)*3600) + (parseInt(m[2])*60) + parseInt(m[3]) + parseInt(m[4])/1000;
+    const end = (parseInt(m[5]||0)*3600) + (parseInt(m[6])*60) + parseInt(m[7]) + parseInt(m[8])/1000;
+    const text = lines.slice(tsIdx + 1).join(' ')
+      .replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ').trim();
+    if (text && !/^\[(?:Music|Applause|Laughter|Música|Aplausos|Risos)\]$/i.test(text)) {
+      items.push({
+        start: Math.round(start * 10) / 10,
+        duration: Math.max(1, Math.round((end - start) * 10) / 10),
+        text
+      });
+    }
+  }
+  return items.filter((item, i, arr) => i === 0 || item.text !== arr[i-1].text);
+}
+
+/** Fetch captions from an Invidious instance */
+async function fetchCaptionFromInvidious(baseUrl, videoId) {
+  const listRes = await fetch(`${baseUrl}/api/v1/captions/${videoId}`, { signal: AbortSignal.timeout(5000) });
+  if (!listRes.ok) return null;
+  const data = await listRes.json();
+  if (!data.captions || data.captions.length === 0) return null;
+  let track = data.captions.find(c => c.language_code === 'en' && !c.label.toLowerCase().includes('auto'));
+  if (!track) track = data.captions.find(c => c.language_code === 'en');
+  if (!track) track = data.captions.find(c => (c.language_code || '').startsWith('en'));
+  if (!track) track = data.captions[0];
+  const captionUrl = track.url.startsWith('http') ? track.url : `${baseUrl}${track.url}`;
+  const vttRes = await fetch(captionUrl, { signal: AbortSignal.timeout(5000) });
+  if (!vttRes.ok) return null;
+  return parseVTTCaption(await vttRes.text());
+}
+
+/** Fetch captions from a Piped instance */
+async function fetchCaptionFromPiped(baseUrl, videoId) {
+  const infoRes = await fetch(`${baseUrl}/streams/${videoId}`, { signal: AbortSignal.timeout(5000) });
+  if (!infoRes.ok) return null;
+  const data = await infoRes.json();
+  if (!data.subtitles || data.subtitles.length === 0) return null;
+  let sub = data.subtitles.find(s => s.code === 'en' && !s.autoGenerated);
+  if (!sub) sub = data.subtitles.find(s => s.code === 'en');
+  if (!sub) sub = data.subtitles.find(s => (s.code || '').startsWith('en'));
+  if (!sub) sub = data.subtitles[0];
+  const vttRes = await fetch(sub.url, { signal: AbortSignal.timeout(5000) });
+  if (!vttRes.ok) return null;
+  return parseVTTCaption(await vttRes.text());
+}
+
+/**
+ * Fallback for shadowing segments when no transcript is available.
+ * Returns empty array — NEVER generates fake/hallucinated phrases.
+ * If you reach this point, the user needs to paste the transcript manually
+ * using the "📋 Colar Legenda do YouTube" or "Parse & Sync" buttons.
  */
 export async function detectFallbackSegments(youtubeVideoId, videoTitle, count = 8) {
-  // Check known real transcript registry first (100% authentic)
-  if (youtubeVideoId && KNOWN_VIDEO_TRANSCRIPTS[youtubeVideoId]) {
-    const list = KNOWN_VIDEO_TRANSCRIPTS[youtubeVideoId];
-    return list.slice(0, count).map(item => ({
-      title: item.text,
-      reason: "Áudio e fala original do vídeo. Pratique o ritmo e pronúncia no loop.",
-      start_seconds: item.start,
-      end_seconds: item.start + (item.duration || 6),
-      key_expressions: [item.text],
-      is_exact: true
-    }));
-  }
-
-  const targetCount = Number(count) || 8;
-  const systemInstruction = `You are an expert English coach. If you know this specific video or song or dialogue, extract ONLY REAL spoken lines from it.
-Do NOT invent fake generic phrases. If you are not completely sure of the real dialogue, return an empty array [].
-Reply ONLY with a valid JSON array.`;
-
-  const prompt = `Video: "${videoTitle}" (ID: ${youtubeVideoId}).
-Extract ${targetCount} of the most famous, REAL spoken or sung lines from this specific video/dialogue with their realistic timestamps.
-If you don't know the exact lines from this video, return [] instead of hallucinating.
-JSON array format:
-[
-  {
-    "title": "Exact line from this video",
-    "reason": "Dica de pronúncia em português",
-    "start_seconds": 15,
-    "end_seconds": 21,
-    "key_expressions": ["expression"]
-  }
-]`;
-
-  try {
-    const text = await callGemini(prompt, systemInstruction, false);
-    const segments = parseJSON(text);
-    return normalizeSegments(segments, true);
-  } catch (error) {
-    console.warn('Fallback segment detection returned no items:', error.message);
-    // Never return fake dummy phrases! Return empty list so user is not deceived by hallucinations.
-    return [];
-  }
+  console.warn(`⚠️ No transcript available for "${videoTitle}" (${youtubeVideoId}). Use "Colar Legenda" to paste manually.`);
+  return [];
 }
 
 /**
  * 📜 Fetch Timed YouTube Video Transcript
+ *
+ * Strategy (in order):
+ * 1. Check localStorage cache
+ * 2. Our Vercel serverless API (/api/transcript) — uses Invidious/Piped server-side
+ * 3. Direct browser requests to Invidious/Piped instances (CORS fallback)
+ *
+ * NEVER returns fake data. Returns null if transcript is unavailable.
  */
 export async function fetchTranscriptTimed(youtubeVideoId) {
-  // 1. Check verified real transcripts registry
-  if (youtubeVideoId && KNOWN_VIDEO_TRANSCRIPTS[youtubeVideoId]) {
-    return KNOWN_VIDEO_TRANSCRIPTS[youtubeVideoId];
-  }
-
-  // 2. Check local saved transcript
+  // 1. Check local saved transcript (cache from previous paste or fetch)
   const saved = loadVideoTranscript(youtubeVideoId);
   if (saved && saved.length > 0) return saved;
 
-  // 3. Try server API
+  // 2. Try our own serverless API (Invidious/Piped on server, no CORS issues)
   try {
-    const res = await fetch(`/api/transcript?videoId=${encodeURIComponent(youtubeVideoId)}`, { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(`/api/transcript?videoId=${encodeURIComponent(youtubeVideoId)}`, {
+      signal: AbortSignal.timeout(15000)
+    });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
+        console.log(`✅ Transcript via /api/transcript (${data.length} lines)`);
+        saveVideoTranscript(youtubeVideoId, data);
         return data;
       }
     }
   } catch (e) {
-    console.warn('Local /api/transcript offline ou demorou:', e);
+    console.warn('/api/transcript failed or timed out:', e.message);
   }
 
-  const proxyUrls = [
-    `https://yt-transcript-api.vercel.app/api/transcript?videoId=${youtubeVideoId}&lang=en`,
-    `https://youtube-transcript-api.vercel.app/api?videoId=${youtubeVideoId}`
-  ];
-
-  for (const url of proxyUrls) {
+  // 3. Try Invidious/Piped instances directly from the browser (CORS fallback)
+  for (const proxy of CAPTION_PROXY_INSTANCES) {
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-          return data;
-        }
+      const result = proxy.type === 'piped'
+        ? await fetchCaptionFromPiped(proxy.base, youtubeVideoId)
+        : await fetchCaptionFromInvidious(proxy.base, youtubeVideoId);
+      if (result && result.length > 0) {
+        console.log(`✅ Transcript via ${proxy.type} (${proxy.base}) — ${result.length} lines`);
+        saveVideoTranscript(youtubeVideoId, result);
+        return result;
       }
-    } catch (e) { }
+    } catch (e) {
+      // CORS or network error — silently try next instance
+    }
   }
 
+  console.warn(`❌ No transcript source available for ${youtubeVideoId}. User should paste manually.`);
   return null;
 }
 
