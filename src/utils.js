@@ -71,117 +71,181 @@ export function parseTime(timeStr) {
  * Returns array of { start: number, duration: number, text: string }.
  */
 /**
- * Parse raw transcript text into short, bite-sized study segments (3 to 7s max).
- * Fixes mobile and external AI issues where text comes in huge chunks (e.g. 30s-1min)
- * or breaks YouTube's micro-timestamps.
- * 
+ * Parse raw transcript text into accurate study segments.
  * Supports:
- * - YouTube standard timestamps: "0:01 Text", "01:23:45 Text", "[0:04] Text"
- * - YouTube Brasil format: "0:000 segundo- Text", "0:022 segundos Jackie", "0:3636 segundos- Thank you"
- * - External AI or transcript tools with large intervals (auto-sliced into 3-6s sentences)
- * - Pure text fallback without timestamps (auto-distributed into 4-6s clips)
+ * - YouTube standard: "0:00 \n Text" or "0:04 Text" or "01:23:45 Text"
+ * - YouTube Brasil / mobile: "0:000 segundo- Text", "0:022 segundos Jackie", "0:3636 segundos- Thank you"
+ * - SRT / WebVTT files with "00:00:01,000 --> 00:00:04,500"
+ * - Bracketed and dashed formats: "[0:04] Text", "0:14 - 0:20 Text"
+ * - Preserves ALL text intact (NEVER drops leading letters like 'S')
+ * - Pure text fallback without timestamps
  */
 export function parsePastedTranscript(rawText) {
   if (!rawText || typeof rawText !== 'string') return [];
-  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const rawItems = [];
 
-  // Match: [0:04], 0:04, 0:022 segundos, 0:3636 segundos-, 01:23:45, 0:000 segundo-
-  const timeRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\d+)?(?:[.,]\d+)?(?:\])?(?:\s*(?:segundos?|minutos?|horas?|seconds?|mins?|s)\b)?(?:\s*[-–:])?\s*(.*)$/i;
+  // Remove BOM and normalize line breaks
+  const cleaned = rawText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
 
-  let lastTime = null;
-  let accumulatedText = [];
+  const items = [];
+
+  // 1. Check if input is SRT or WebVTT format (contains '-->')
+  const isSrtOrVtt = lines.some(l => l.includes('-->'));
+
+  if (isSrtOrVtt) {
+    let currentStart = null;
+    let currentEnd = null;
+    let currentTexts = [];
+    const arrowRegex = /((?:\d{1,2}:)?\d{1,2}:\d{2}(?:[.,]\d+)?)\s*-->\s*((?:\d{1,2}:)?\d{1,2}:\d{2}(?:[.,]\d+)?)/;
+
+    for (const line of lines) {
+      if (/^(?:WEBVTT|NOTE|STYLE|\d+)$/i.test(line)) {
+        continue; // skip line numbers and headers
+      }
+
+      const match = line.match(arrowRegex);
+      if (match) {
+        if (currentStart !== null && currentTexts.length > 0) {
+          const text = currentTexts.join(' ').replace(/<[^>]+>/g, '').trim();
+          if (text) {
+            const dur = currentEnd !== null && currentEnd > currentStart ? (currentEnd - currentStart) : 4;
+            items.push({
+              start: Math.round(currentStart * 10) / 10,
+              duration: Math.round(Math.max(2, dur) * 10) / 10,
+              text
+            });
+          }
+          currentTexts = [];
+        }
+        currentStart = parseTime(match[1]);
+        currentEnd = parseTime(match[2]);
+      } else {
+        if (currentStart !== null) {
+          const stripped = line.replace(/<[^>]+>/g, '').trim();
+          if (stripped) currentTexts.push(stripped);
+        }
+      }
+    }
+
+    if (currentStart !== null && currentTexts.length > 0) {
+      const text = currentTexts.join(' ').replace(/<[^>]+>/g, '').trim();
+      if (text) {
+        const dur = currentEnd !== null && currentEnd > currentStart ? (currentEnd - currentStart) : 4;
+        items.push({
+          start: Math.round(currentStart * 10) / 10,
+          duration: Math.round(Math.max(2, dur) * 10) / 10,
+          text
+        });
+      }
+    }
+
+    if (items.length > 0) {
+      return sanitizeTranscriptItems(items);
+    }
+  }
+
+  // 2. YouTube standard & YouTube Brasil format parser
+  const timeRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\d+)?(?:[.,]\d+)?(?:\])?(?:\s*(?:segundos?|minutos?|horas?|seconds?|mins?)\b)?(?:\s*[-–:])?\s*(.*)$/i;
+  const leadTimestampRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\d+)?(?:[.,]\d+)?(?:\])?(?:\s*(?:segundos?|minutos?|horas?|seconds?|mins?)\b)?(?:\s*[-–:])?\s*/i;
+
+  let currentTime = null;
+  let currentTexts = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const m = line.match(timeRegex);
+    const timeMatch = line.match(timeRegex);
 
-    if (m) {
-      const h = m[1] ? parseInt(m[1], 10) : 0;
-      const min = parseInt(m[2], 10);
-      const s = parseInt(m[3], 10);
-      const seconds = h * 3600 + min * 60 + s;
-      
-      let rest = (m[4] || '').trim();
-      rest = rest.replace(/^(?:segundos?|minutos?|horas?|seconds?|mins?|s)[-–:\s]*/i, '').trim();
-      rest = rest.replace(/^(?:[-–to\s]*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\d+)?(?:[.,]\d+)?[-–\s]*)/i, '').trim();
+    if (timeMatch && timeMatch[2] !== undefined && timeMatch[3] !== undefined) {
+      const h = timeMatch[1] ? parseInt(timeMatch[1], 10) : 0;
+      const m = parseInt(timeMatch[2], 10);
+      const s = parseInt(timeMatch[3], 10);
+      const seconds = h * 3600 + m * 60 + s;
 
-      if (lastTime !== null && accumulatedText.length > 0) {
-        rawItems.push({ start: lastTime, duration: 4, text: accumulatedText.join(' ') });
-        accumulatedText = [];
+      // Extract text on the same line if present
+      let rest = line.replace(leadTimestampRegex, '').trim();
+      // Remove second timestamp if it was a range like '0:14 - 0:20 Text'
+      rest = rest.replace(/^(?:[-–to\s]*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:[.,]\d+)?[-–\s]*)/i, '').trim();
+
+      if (currentTime !== null && currentTexts.length > 0) {
+        items.push({
+          start: currentTime,
+          duration: 4,
+          text: currentTexts.join(' ').trim()
+        });
+        currentTexts = [];
       }
-      lastTime = seconds;
-      if (rest) accumulatedText.push(rest);
+
+      currentTime = seconds;
+      if (rest) currentTexts.push(rest);
     } else {
-      let cleaned = line.replace(/^(?:segundos?|minutos?|horas?|seconds?|mins?|s)[-–:\s]*/i, '').trim();
-      if (cleaned) accumulatedText.push(cleaned);
+      if (currentTime !== null) {
+        // Strip any YouTube Brasil artifact like standalone "4 segundos-"
+        const clean = line.replace(/^\d+\s*(?:segundos?|minutos?|horas?|seconds?|mins?)\s*[-–:]*\s*/i, '').trim();
+        if (clean) currentTexts.push(clean);
+      }
     }
   }
 
-  if (lastTime !== null && accumulatedText.length > 0) {
-    rawItems.push({ start: lastTime, duration: 4, text: accumulatedText.join(' ') });
+  if (currentTime !== null && currentTexts.length > 0) {
+    items.push({
+      start: currentTime,
+      duration: 4,
+      text: currentTexts.join(' ').trim()
+    });
   }
 
-  // Fallback: If no timestamps could be parsed, chunk raw text into natural short sentences
-  if (rawItems.length === 0) {
-    const sentences = rawText.split(/(?<=[.?!])\s+/).map(s => s.trim()).filter(s => s.length > 3);
-    let curTime = 5;
-    for (const sent of sentences) {
-      const estDuration = Math.max(3, Math.min(8, Math.round(sent.split(/\s+/).length * 0.4)));
-      rawItems.push({ start: curTime, duration: estDuration, text: sent });
-      curTime += estDuration + 1;
+  // 3. Fallback: If no timestamps were found, treat as plain text/lyrics
+  if (items.length === 0) {
+    const rawSentences = rawText.split(/(?<=[.?!])\s+/).map(s => s.trim()).filter(s => s.length > 2);
+    let curTime = 0;
+    for (const sent of rawSentences) {
+      const words = sent.split(/\s+/).length;
+      const dur = Math.max(3, Math.min(10, Math.round(words * 0.6 + 1)));
+      items.push({
+        start: curTime,
+        duration: dur,
+        text: sent
+      });
+      curTime += dur;
     }
   } else {
-    // Calculate durations from differences between timestamps
-    for (let i = 0; i < rawItems.length; i++) {
-      if (i < rawItems.length - 1) {
-        const diff = rawItems[i + 1].start - rawItems[i].start;
-        rawItems[i].duration = diff > 0 ? diff : 4;
+    // Calculate durations from differences between consecutive timestamps
+    for (let i = 0; i < items.length; i++) {
+      const wordsCount = items[i].text.split(/\s+/).length;
+      const estimatedSpoken = Math.max(3, Math.round(wordsCount * 0.55 + 1.5));
+
+      if (i < items.length - 1) {
+        const diff = items[i + 1].start - items[i].start;
+        if (diff > 0) {
+          // If the gap is short (<= 8s), use the exact difference
+          // If there is a huge pause (e.g. 30s of silence or music), cap cleanly so the loop doesn't loop silence
+          items[i].duration = diff <= 8 ? Math.round(diff * 10) / 10 : Math.min(diff, Math.max(estimatedSpoken, 6));
+        } else {
+          items[i].duration = estimatedSpoken;
+        }
       } else {
-        rawItems[i].duration = 4;
+        items[i].duration = estimatedSpoken;
       }
     }
   }
 
-  // --- SHORT-CHUNK SENTENCE SLICER ---
-  // If an external source created huge blocks (> 7 seconds or multiple sentences),
-  // slice them down into 3-6 second micro-clips so YouTube loops don't break!
-  const finalClips = [];
+  return sanitizeTranscriptItems(items);
+}
 
-  for (const item of rawItems) {
-    const rawSentence = (item.text || '').trim();
-    if (!rawSentence) continue;
-
-    const sentences = rawSentence.split(/(?<=[.?!])\s+/).map(s => s.trim()).filter(Boolean);
-    const itemDuration = item.duration || 4;
-
-    if (itemDuration > 7 && sentences.length > 1) {
-      // Proportional distribution by sentence length
-      const totalChars = sentences.reduce((sum, s) => sum + s.length, 0);
-      let curStart = item.start;
-
-      for (let i = 0; i < sentences.length; i++) {
-        const sent = sentences[i];
-        const fraction = totalChars > 0 ? (sent.length / totalChars) : (1 / sentences.length);
-        const subDuration = Math.max(2.5, Math.min(8, Math.round(itemDuration * fraction * 10) / 10));
-        
-        finalClips.push({
-          start: Math.round(curStart * 10) / 10,
-          duration: subDuration,
-          text: sent
-        });
-        curStart += subDuration;
-      }
-    } else {
-      finalClips.push({
-        start: Math.round(item.start * 10) / 10,
-        duration: Math.min(Math.max(itemDuration, 2.5), 8), // Bound between 2.5s and 8s for shadowing
-        text: rawSentence
-      });
-    }
-  }
-
-  return finalClips;
+function sanitizeTranscriptItems(items) {
+  return items.map(item => ({
+    start: Math.max(0, Math.round(item.start * 10) / 10),
+    duration: Math.max(2, Math.round(item.duration * 10) / 10),
+    text: (item.text || '')
+      .replace(/&amp;/g, '&')
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
+      .trim()
+  })).filter(item => item.text.length > 0 && !item.text.startsWith('[Music]') && !item.text.startsWith('[Applause]'));
 }
 
 /**
