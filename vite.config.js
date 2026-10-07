@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 export default defineConfig({
   root: '.',
@@ -28,6 +29,8 @@ export default defineConfig({
             exec(`python api/transcript.py`, { 
               env: { ...process.env, REQUEST_METHOD: 'GET', QUERY_STRING: `videoId=${videoId}` } 
             }, (error, stdout, stderr) => {
+              // Note: executing the BaseHTTPRequestHandler directly via CLI won't work,
+              // so instead we just use a small python one-liner using the library directly.
               const pyScript = `
 import sys, json
 try:
