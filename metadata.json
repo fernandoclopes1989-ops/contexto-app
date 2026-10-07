@@ -1,4 +1,7 @@
 {
   "name": "Contexto — Estudo de Inglês com Vídeos",
-  "description": "Transforme qualquer vídeo do YouTube em uma sessão de estudo de inglês. Loop de trechos, vocabulário em contexto e revisão espaçada automática."
+  "description": "Transforme qualquer vídeo do YouTube em uma sessão de estudo de inglês. Loop de trechos, vocabulário em contexto e revisão espaçada automática.",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
