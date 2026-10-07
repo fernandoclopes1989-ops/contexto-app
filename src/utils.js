@@ -146,26 +146,30 @@ export function parsePastedTranscript(rawText) {
   }
 
   // 2. YouTube standard & YouTube Brasil format parser
-  const timeRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\d+)?(?:[.,]\d+)?(?:\])?(?:\s*(?:segundos?|minutos?|horas?|seconds?|mins?)\b)?(?:\s*[-–:])?\s*(.*)$/i;
-  const leadTimestampRegex = /^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:\d+)?(?:[.,]\d+)?(?:\])?(?:\s*(?:segundos?|minutos?|horas?|seconds?|mins?)\b)?(?:\s*[-–:])?\s*/i;
-
   let currentTime = null;
   let currentTexts = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const timeMatch = line.match(timeRegex);
 
-    if (timeMatch && timeMatch[2] !== undefined && timeMatch[3] !== undefined) {
+    // Check if line starts with timestamp: (H:)?M:SS
+    const timeMatch = line.match(/^(?:\[)?(?:(\d{1,2}):)?(\d{1,2}):(\d{2})(?:[.,]\d+)?(?:\])?/);
+
+    if (timeMatch) {
       const h = timeMatch[1] ? parseInt(timeMatch[1], 10) : 0;
       const m = parseInt(timeMatch[2], 10);
       const s = parseInt(timeMatch[3], 10);
       const seconds = h * 3600 + m * 60 + s;
 
-      // Extract text on the same line if present
-      let rest = line.replace(leadTimestampRegex, '').trim();
-      // Remove second timestamp if it was a range like '0:14 - 0:20 Text'
-      rest = rest.replace(/^(?:[-–to\s]*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:[.,]\d+)?[-–\s]*)/i, '').trim();
+      let rest = line.slice(timeMatch[0].length).trim();
+
+      // Strip YouTube Brasil accessibility metadata
+      // e.g. "15 segundosI", "1 minuto e 4 segundosHow do you like it",
+      // "7 minutos e 38 segundosSephora", "7 minutossatisfied", "21 minutoshey"
+      rest = rest.replace(/^(?:\d+\s*horas?\s*(?:e\s*)?)?(?:\d+\s*minutos?\s*(?:e\s*)?)?(?:\d+\s*)?(?:segundos?|minutos?|horas?)\s*[-–:]*\s*/i, '');
+      rest = rest.replace(/^(?:e\s*\d+\s*(?:segundos?|minutos?)\s*[-–:]*\s*)/i, '');
+      rest = rest.replace(/^(?:[-–to\s]*(?:\d{1,2}:)?\d{1,2}:\d{2}(?:[.,]\d+)?[-–\s]*)/i, '');
+      rest = rest.replace(/^[-–:]+\s*/, '').trim();
 
       if (currentTime !== null && currentTexts.length > 0) {
         items.push({
@@ -180,8 +184,10 @@ export function parsePastedTranscript(rawText) {
       if (rest) currentTexts.push(rest);
     } else {
       if (currentTime !== null) {
-        // Strip any YouTube Brasil artifact like standalone "4 segundos-"
-        const clean = line.replace(/^\d+\s*(?:segundos?|minutos?|horas?|seconds?|mins?)\s*[-–:]*\s*/i, '').trim();
+        // Strip any YouTube Brasil artifact on standalone lines
+        let clean = line.replace(/^(?:\d+\s*horas?\s*(?:e\s*)?)?(?:\d+\s*minutos?\s*(?:e\s*)?)?(?:\d+\s*)?(?:segundos?|minutos?|horas?)\s*[-–:]*\s*/i, '');
+        clean = clean.replace(/^(?:e\s*\d+\s*(?:segundos?|minutos?)\s*[-–:]*\s*)/i, '');
+        clean = clean.replace(/^[-–:]+\s*/, '').trim();
         if (clean) currentTexts.push(clean);
       }
     }
