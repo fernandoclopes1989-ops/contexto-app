@@ -308,6 +308,8 @@ function startPlayingPlaylist(playlistData, container) {
 function renderActivePlayerView(container) {
   currentView = 'player';
   const clip = activeClipsList[activeTrackIndex] || activeClipsList[0];
+  const phrase = clip?.nome || '';
+  const initPhonetics = phrase ? getPhrasePhonetics(phrase) : { ipa: '', br: '', connectedBr: '' };
 
   container.innerHTML = `
     <!-- Top Nav: Back button + Playlist Quick Switcher -->
@@ -404,13 +406,13 @@ function renderActivePlayerView(container) {
                 <!-- IPA Line -->
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
                   <span style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px;">IPA</span>
-                  <span id="player-phonetic-ipa" style="font-size: 13px; font-family: 'Courier New', monospace; color: var(--accent-secondary); font-weight: 600; letter-spacing: 0.5px;"></span>
+                  <span id="player-phonetic-ipa" style="font-size: 13px; font-family: 'Courier New', monospace; color: var(--accent-secondary); font-weight: 600; letter-spacing: 0.5px;">${escapeHtml(initPhonetics.ipa || '')}</span>
                 </div>
 
                 <!-- Aportuguesado (Palavra por Palavra) Line -->
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
                   <span style="font-size: 10px; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px; background: rgba(251, 191, 36, 0.12); padding: 1px 6px; border-radius: 4px;">Palavra a Palavra</span>
-                  <span id="player-phonetic-br" style="font-size: 13px; color: #fbbf24; font-weight: 600; font-style: italic;"></span>
+                  <span id="player-phonetic-br" style="font-size: 13px; color: #fbbf24; font-weight: 600; font-style: italic;">${escapeHtml(initPhonetics.br || '')}</span>
                 </div>
 
                 <!-- Fala Conectada Real (Como o nativo emenda) -->
@@ -418,7 +420,7 @@ function renderActivePlayerView(container) {
                   <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <span style="font-size: 11px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.8px;">🗣️ Como Soa na Fala Real (Connected Speech):</span>
                   </div>
-                  <div id="player-phonetic-connected" style="font-size: 15px; color: #67e8f9; font-weight: 800; letter-spacing: 0.3px; line-height: 1.4;"></div>
+                  <div id="player-phonetic-connected" style="font-size: 15px; color: #67e8f9; font-weight: 800; letter-spacing: 0.3px; line-height: 1.4;">${escapeHtml(initPhonetics.connectedBr || initPhonetics.br || '')}</div>
                 </div>
               </div>
 
@@ -773,8 +775,12 @@ async function loadAndPlayTrack(index) {
   if (repsEl) repsEl.textContent = `🔁 Repetição: ${repetitionCount}`;
 
   // ZERO TOKEN PHONETICS & CONNECTED SPEECH (Instant offline calculation & permanent cache)
-  updateConnectedSpeechUI(clip);
-  refreshGhostUI();
+  try {
+    updateConnectedSpeechUI(clip);
+    refreshGhostUI();
+  } catch (err) {
+    console.error('Error updating connected speech UI:', err);
+  }
 
   // Find matching video
   const matchingVideo = allVideos.find(v => String(v.id) === String(clip.video_id));

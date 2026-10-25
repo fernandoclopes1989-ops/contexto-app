@@ -146,6 +146,10 @@ const PHONETIC_DICT = {
   'not': { ipa: 'nɑːt', br: 'nót' },
   'yes': { ipa: 'jɛs', br: 'iés' },
   'yeah': { ipa: 'jɛə', br: 'ié' },
+  'today': { ipa: 'təˈdeɪ', br: 'tudêi' },
+  'much': { ipa: 'mʌtʃ', br: 'mâtch' },
+  'uh': { ipa: 'ə', br: 'â' },
+  'um': { ipa: 'əm', br: 'âm' },
 
   // Common verbs
   'go': { ipa: 'ɡoʊ', br: 'gôu' },
@@ -200,6 +204,9 @@ const PHONETIC_DICT = {
   'move': { ipa: 'muːv', br: 'múv' },
   'live': { ipa: 'lɪv', br: 'liv' },
   'living': { ipa: 'ˈlɪvɪŋ', br: 'lívin' },
+  'love': { ipa: 'lʌv', br: 'lâv' },
+  'loved': { ipa: 'lʌvd', br: 'lâvd' },
+  'loving': { ipa: 'ˈlʌvɪŋ', br: 'lâvin' },
   'believe': { ipa: 'bɪˈliːv', br: 'bilív' },
   'bring': { ipa: 'brɪŋ', br: 'brin' },
   'happen': { ipa: 'ˈhæpən', br: 'répen' },
@@ -522,7 +529,7 @@ export function analyzeConnectedSpeech(phrase) {
   }
 
   return {
-    linkedHtml: escapeHtml(phrase),
+    linkedHtml: phrase,
     soundGuide: uniqueGuide,
     hasConnections: uniqueGuide.length > 0
   };
