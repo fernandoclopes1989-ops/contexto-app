@@ -498,18 +498,11 @@ function renderClipItem(clip) {
         <div style="flex: 1;">
           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
             <span class="clip-name" style="font-weight: 700; color: #fff; font-size: 14px;">${escapeHtml(clip.nome || 'Trecho sem nome')}</span>
-            ${cs.hasConnections ? `
-              <span class="badge" style="font-size: 10px; padding: 1px 6px; background: rgba(56, 189, 248, 0.12); color: var(--accent-secondary); border: 1px solid rgba(56, 189, 248, 0.25);">
-                🔗 Connected (${cs.rules.length})
-              </span>
-            ` : ''}
           </div>
 
           ${cs.hasConnections ? `
             <div style="margin-top: 4px; font-size: 12px; line-height: 1.5; color: #e2e8f0; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.04);">
-              <span style="color: var(--text-muted); font-size: 10px; margin-right: 4px;">Raio-X:</span>
-              <span>${cs.linkedHtml}</span>
-              <span style="color: #fbbf24; font-weight: 700; margin-left: 6px; font-size: 11px;">${cs.blendedPhonetic}</span>
+              ${cs.soundGuide.map(g => `<span style="color:#fbbf24; font-weight:700; margin-right:8px; display:inline-block;">• ${escapeHtml(g.words)} ➔ "${escapeHtml(g.sound)}"</span>`).join('')}
             </div>
           ` : ''}
 

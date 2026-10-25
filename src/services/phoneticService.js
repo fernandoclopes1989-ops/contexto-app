@@ -382,9 +382,7 @@ export function analyzeConnectedSpeech(phrase) {
   if (!phrase || typeof phrase !== 'string') {
     return {
       linkedHtml: '',
-      blendedPhonetic: '',
-      rules: [],
-      stressHtml: '',
+      soundGuide: [],
       hasConnections: false
     };
   }
@@ -392,156 +390,134 @@ export function analyzeConnectedSpeech(phrase) {
   const cleanPhrase = phrase.trim();
   const rawWords = cleanPhrase.split(/\s+/).filter(Boolean);
   if (rawWords.length === 0) {
-    return { linkedHtml: '', blendedPhonetic: '', rules: [], stressHtml: '', hasConnections: false };
+    return { linkedHtml: '', soundGuide: [], hasConnections: false };
   }
 
-  const rulesMap = new Map();
+  const soundGuide = [];
   const linkedSpans = [];
-  const blendedPhonetics = [];
-  const stressSpans = [];
 
   for (let i = 0; i < rawWords.length; i++) {
     const cur = rawWords[i];
     const next = i < rawWords.length - 1 ? rawWords[i + 1] : null;
 
+    // Check if current word ends in punctuation (periods, commas, etc. prevent linking!)
+    const hasPunctuation = /[.,!?;:]$/.test(cur);
     const curClean = cur.toLowerCase().replace(/[^a-z']/g, '');
     const nextClean = next ? next.toLowerCase().replace(/[^a-z']/g, '') : '';
 
-    // Check stress rhythm
-    const isWeak = WEAK_FUNCTION_WORDS.has(curClean);
-    if (isWeak) {
-      stressSpans.push(`<span class="cs-weak-word" title="Palavra gramatical átona (som reduzido)">${cur}</span>`);
-    } else {
-      stressSpans.push(`<strong class="cs-stressed-word" title="Palavra de conteúdo (tônica / ritmo forte)">${cur}</strong>`);
-    }
+    // --- RULE 1: Reductions & Slang (gonna, wanna, gotta, kinda, outta) ---
+    if (!hasPunctuation && next) {
+      if (curClean === 'going' && nextClean === 'to') {
+        soundGuide.push({
+          words: 'going to',
+          sound: 'gôna',
+          detail: 'Vira "gonna"'
+        });
+      } else if (curClean === 'want' && nextClean === 'to') {
+        soundGuide.push({
+          words: 'want to',
+          sound: 'uôna',
+          detail: 'Vira "wanna"'
+        });
+      } else if (curClean === 'got' && nextClean === 'to') {
+        soundGuide.push({
+          words: 'got to',
+          sound: 'góra',
+          detail: 'Vira "gotta" (com Flap T)'
+        });
+      } else if (curClean === 'kind' && nextClean === 'of') {
+        soundGuide.push({
+          words: 'kind of',
+          sound: 'káinda',
+          detail: 'Vira "kinda"'
+        });
+      } else if (curClean === 'out' && nextClean === 'of') {
+        soundGuide.push({
+          words: 'out of',
+          sound: 'áura',
+          detail: 'Vira "outta" (com Flap T)'
+        });
+      }
 
-    const { br: curBr } = wordToPhonetic(curClean);
-    let phoneticRespelled = curBr || curClean;
-
-    // --- RULE 1: Reductions & Slang (gonna, wanna, gotta, etc.) ---
-    if (curClean === 'going' && nextClean === 'to') {
-      rulesMap.set('reduction_gonna', {
-        type: 'reduction',
-        label: '📉 Redução: going to → gonna',
-        description: '"going to" no dia a dia é falado quase sempre como "gonna" [gôna]'
-      });
-    } else if (curClean === 'want' && nextClean === 'to') {
-      rulesMap.set('reduction_wanna', {
-        type: 'reduction',
-        label: '📉 Redução: want to → wanna',
-        description: '"want to" vira "wanna" [uôna]'
-      });
-    } else if (curClean === 'got' && nextClean === 'to') {
-      rulesMap.set('reduction_gotta', {
-        type: 'reduction',
-        label: '📉 Redução: got to → gotta',
-        description: '"got to" vira "gotta" [góra] (com Flap T)'
-      });
-    } else if (curClean === 'kind' && nextClean === 'of') {
-      rulesMap.set('reduction_kinda', {
-        type: 'reduction',
-        label: '📉 Redução: kind of → kinda',
-        description: '"kind of" vira "kinda" [káinda]'
-      });
-    } else if (curClean === 'out' && nextClean === 'of') {
-      rulesMap.set('reduction_outta', {
-        type: 'reduction',
-        label: '📉 Redução: out of → outta',
-        description: '"out of" vira "outta" [áura]'
-      });
-    }
-
-    // Check boundary with next word
-    if (next) {
       const endConsonant = getEndingConsonantSound(curClean);
       const nextStartsVowel = startsWithVowelSound(nextClean);
       const isYou = nextClean === 'you' || nextClean === 'your' || nextClean === "you're" || nextClean === "y'all";
 
-      // --- RULE 2: Assimilation / Palatalization (T/D + Y -> 'tch'/'dj') ---
+      // --- RULE 2: Assimilation / Palatalization (T/D + Y -> 'tch' / 'dj') ---
       if ((curClean.endsWith('t') || curClean.endsWith('d')) && isYou) {
         const isT = curClean.endsWith('t');
         const sound = isT ? 'tch' : 'dj';
-        rulesMap.set(`palatal_${curClean}_${nextClean}`, {
-          type: 'palatal',
-          label: `🤝 Palatalização: ${cur} + ${next} → [${sound}]`,
-          description: `O "${isT ? 't' : 'd'}" se funde com "${next}" criando o som de "${sound}" (ex: ${curClean} ${nextClean} soa "${sound === 'tch' ? 'mí-tchu' : 'dí-dju'}")`
+        soundGuide.push({
+          words: `${curClean} ${nextClean}`,
+          sound: isT ? `${curClean.slice(0, -1)}i-tchu` : `${curClean.slice(0, -1)}i-dju`,
+          detail: `O "${isT ? 't' : 'd'}" se funde com "you" virando som de "${sound}"`
         });
 
-        linkedSpans.push(`<span class="cs-token-link cs-palatal" title="Fusão de som: vira ${sound}">${cur}<span class="cs-tie">‿</span></span>`);
-        blendedPhonetics.push(phoneticRespelled.replace(/[td]$/, sound));
+        linkedSpans.push(`<span class="cs-highlight-word">${cur}</span><span class="cs-tie">‿</span>`);
         continue;
       }
 
-      // --- RULE 3: Flap T / Flap D (Intervocalic -> R de "arara") ---
+      // --- RULE 3: Flap T / Flap D (Intervocalic -> som de R brando de "cara") ---
       const isFlapEligible = (curClean.endsWith('t') || curClean.endsWith('te') || curClean.endsWith('d')) && 
                              /[aeiou]/i.test(curClean.slice(-3, -1) || curClean[0]) &&
                              nextStartsVowel;
 
       if (isFlapEligible) {
-        rulesMap.set(`flap_${curClean}_${nextClean}`, {
-          type: 'flap_t',
-          label: `⚡ Flap T: ${cur} + ${next} → [${curClean.replace(/te?$|d$/, '')}-r-${nextClean}]`,
-          description: `O "T/D" entre duas vogais vira o som de "R" suave do português (como em 'cara', 'arara')`
+        const root = curClean.replace(/te?$|d$/, '');
+        soundGuide.push({
+          words: `${curClean} ${nextClean}`,
+          sound: `${root}-r-${nextClean}`,
+          detail: `O "T" vira som de "R" e emenda na próxima vogal`
         });
 
-        linkedSpans.push(`<span class="cs-token-link cs-flap" title="Flap T: som de R brando">${cur}<span class="cs-tie">‿</span></span>`);
-        blendedPhonetics.push(phoneticRespelled.replace(/[td]$/, 'r-'));
+        linkedSpans.push(`<span class="cs-highlight-word">${cur}</span><span class="cs-tie">‿</span>`);
         continue;
       }
 
       // --- RULE 4: Pronoun H-Dropping (tell him -> te-lim) ---
       if (['him', 'her', 'his'].includes(nextClean) && endConsonant) {
-        rulesMap.set(`h_drop_${curClean}_${nextClean}`, {
-          type: 'elision',
-          label: `💨 H-Dropping: ${cur} + ${next}`,
-          description: `O "H" de "${nextClean}" desaparece no fluxo rápido e a consoante de "${curClean}" se conecta direto`
+        soundGuide.push({
+          words: `${curClean} ${nextClean}`,
+          sound: `${curClean}-${nextClean.slice(1)}`,
+          detail: `O "H" de "${nextClean}" some e a consoante gruda direto`
         });
 
-        linkedSpans.push(`<span class="cs-token-link cs-elision" title="O 'H' some e conecta">${cur}<span class="cs-tie">‿</span></span>`);
-        blendedPhonetics.push(phoneticRespelled + '-');
+        linkedSpans.push(`<span class="cs-highlight-word">${cur}</span><span class="cs-tie">‿</span>`);
         continue;
       }
 
-      // --- RULE 5: Standard Consonant + Vowel Linking (C-V Liaison) ---
+      // --- RULE 5: Standard Consonant + Vowel Linking (C-V) ---
       if (endConsonant && nextStartsVowel) {
-        rulesMap.set(`linking_${curClean}_${nextClean}`, {
-          type: 'linking',
-          label: `🔗 Linking: ${cur} + ${next}`,
-          description: `A consoante final de "${curClean}" salta para o início de "${nextClean}" sem pausa no som`
+        soundGuide.push({
+          words: `${curClean} ${nextClean}`,
+          sound: `${curClean}-${nextClean}`,
+          detail: `A consoante final gruda direto na vogal seguinte`
         });
 
-        linkedSpans.push(`<span class="cs-token-link cs-linking" title="Ligação: Consoante + Vogal">${cur}<span class="cs-tie">‿</span></span>`);
-        blendedPhonetics.push(phoneticRespelled + '-');
-        continue;
-      }
-
-      // --- RULE 6: Elision in Consonant Clusters (last night -> las-night) ---
-      if ((curClean.endsWith('st') || curClean.endsWith('ft') || curClean.endsWith('nd')) && !nextStartsVowel) {
-        rulesMap.set(`cluster_${curClean}`, {
-          type: 'elision',
-          label: `💨 Elisão: ${cur} (consoante omitida)`,
-          description: `O som final de "${curClean}" é suavemente suprimido para facilitar o fluxo com "${nextClean}"`
-        });
-
-        linkedSpans.push(`<span class="cs-token-link cs-elision" title="Som final atenuado">${cur} </span>`);
-        blendedPhonetics.push(phoneticRespelled.replace(/[td]$/, '') + ' ');
+        linkedSpans.push(`<span class="cs-highlight-word">${cur}</span><span class="cs-tie">‿</span>`);
         continue;
       }
     }
 
-    // Default token without connection to next
-    linkedSpans.push(`<span class="cs-token">${cur}</span> `);
-    blendedPhonetics.push(phoneticRespelled + ' ');
+    // Normal word (no link to next)
+    linkedSpans.push(`<span>${cur}</span> `);
   }
 
-  const rules = Array.from(rulesMap.values());
+  // Deduplicate and prioritize top 3 key sound transformations to avoid visual clutter
+  const uniqueGuide = [];
+  const seenWords = new Set();
+  for (const item of soundGuide) {
+    if (!seenWords.has(item.words)) {
+      seenWords.add(item.words);
+      uniqueGuide.push(item);
+    }
+    if (uniqueGuide.length >= 3) break; // Maximum 3 clear, didactic items
+  }
 
   return {
     linkedHtml: linkedSpans.join('').trim(),
-    blendedPhonetic: `[${blendedPhonetics.join('').trim().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ')}]`,
-    rules: rules,
-    stressHtml: stressSpans.join(' '),
-    hasConnections: rules.length > 0
+    soundGuide: uniqueGuide,
+    hasConnections: uniqueGuide.length > 0
   };
 }
 
