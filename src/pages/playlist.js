@@ -4,9 +4,9 @@
  * Zero token waste: Phonetic transcriptions are permanently cached and offline.
  */
 
-import { getAll, addClip } from '../db.js';
+import { getAll, addClip, updateClip } from '../db.js';
 import { createPlayer, destroyPlayer, seekTo, play, pause, setPlaybackRate, getPlayer } from '../youtube.js';
-import { getPhrasePhonetics } from '../services/phoneticService.js';
+import { getPhrasePhonetics, analyzeConnectedSpeech, syncDeepConnectedSpeechToDB } from '../services/phoneticService.js';
 import { formatTime, escapeHtml, showToast } from '../utils.js';
 
 // State
@@ -23,6 +23,10 @@ let playerReady = false;
 let currentView = 'hub'; // 'hub' | 'player'
 let audioOnlyMode = false; // Toggle video vs pure audio album art
 let repetitionCount = 0;
+let ghostListeningMode = false; // "Modo Ouvido Cego" (auditory training without visual bias)
+let ghostRevealed = false; // Track if current track has been revealed
+let microLoopActive = false; // 2-second micro chunk looper
+let microLoopDuration = 2.0; // 2 seconds
 
 export async function renderPlaylist(container) {
   container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span class="loading-text">Carregando suas Playlists de Shadowing...</span></div>`;
@@ -357,27 +361,72 @@ function renderActivePlayerView(container) {
           </div>
         </div>
 
-        <!-- Now Playing Text Stage (Visual de Letra do Spotify) -->
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; margin: var(--space-4) 0; max-width: 540px;">
-          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent-secondary); font-weight: 800; margin-bottom: 6px;">
-            FRASE DE SHADOWING EM REPETIÇÃO
-          </div>
+        <!-- Auditory Training Toolbar -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; width: 100%; max-width: 520px;">
+          <button id="btn-toggle-ghost" class="btn btn-ghost btn-sm" style="font-size: 11px; padding: 4px 10px; border-radius: var(--radius-full); background: rgba(255,255,255,0.05); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 5px;" title="Borra o texto para forçar o ouvido a trabalhar primeiro sem apoio visual">
+            <span id="ghost-btn-icon">🙈</span> <span id="ghost-btn-text">Modo Ouvido Cego</span>
+          </button>
+          <button id="btn-toggle-microloop" class="btn btn-ghost btn-sm btn-micro-loop" style="font-size: 11px; padding: 4px 10px; border-radius: var(--radius-full); background: rgba(255,255,255,0.05); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); display: flex; align-items: center; gap: 5px;" title="Repete apenas os 2 segundos iniciais da frase em loop contínuo para isolar a emenda fonética">
+            <span>🎯</span> <span id="microloop-btn-text">Micro-Loop (2s)</span>
+          </button>
+          <button id="btn-sync-ai-cloud" class="btn btn-ghost btn-sm" style="font-size: 11px; padding: 4px 10px; border-radius: var(--radius-full); background: rgba(56,189,248,0.1); color: var(--accent-secondary); border: 1px solid rgba(56,189,248,0.25); display: flex; align-items: center; gap: 5px;" title="Gera o Raio-X profundo com IA e sincroniza na sua conta do Supabase para acessar no PC e no celular">
+            <span>✨</span> <span>Raio-X Nuvem</span>
+          </button>
+        </div>
+
+        <!-- Now Playing Stage (Ghost Mode Container) -->
+        <div id="player-speech-stage" class="ghost-container" style="flex: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; margin: var(--space-3) 0; max-width: 540px; position: relative;">
           
-          <div id="player-sentence" style="font-size: 1.35rem; font-weight: 800; color: #fff; line-height: 1.4; text-shadow: 0 2px 8px rgba(0,0,0,0.6); padding: 0 var(--space-3); margin-bottom: var(--space-3);">
-            "${escapeHtml(clip?.nome || 'Carregando...')}"
+          <!-- Ghost Mode Overlay Curtain -->
+          <div id="ghost-curtain" class="ghost-curtain" style="display: none;">
+            <div class="ghost-curtain-icon">🙈</div>
+            <div class="ghost-curtain-text">Modo Ouvido Cego Ativo</div>
+            <div class="ghost-curtain-subtext">Ouça primeiro! Toque aqui para revelar a letra e o Raio-X</div>
           </div>
 
-          <!-- Transcrição Fonética Fixa (ZERO TOKENS — Motor 100% Offline) -->
-          <div id="player-phonetic-container" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-md); padding: 10px 14px; margin: 0 var(--space-3); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px;">
-            <div id="player-phonetic-ipa" style="font-size: 13px; font-family: monospace; color: var(--accent-secondary); font-weight: 600; letter-spacing: 0.5px;"></div>
-            <div id="player-phonetic-br" style="font-size: 12px; color: #fbbf24; font-weight: 700; font-style: italic;"></div>
-          </div>
+          <!-- Ghost Content (Content blurred when ghost mode is on) -->
+          <div id="ghost-content" style="transition: filter 0.3s ease;">
+            <!-- Original Sentence -->
+            <div id="player-sentence" style="font-size: 1.15rem; font-weight: 800; color: #fff; line-height: 1.4; text-shadow: 0 2px 8px rgba(0,0,0,0.6); padding: 0 var(--space-2); margin-bottom: 8px;">
+              "${escapeHtml(clip?.nome || 'Carregando...')}"
+            </div>
 
-          <!-- Counter badge -->
-          <div style="margin-top: 8px;">
-            <span id="player-reps-counter" class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-secondary); font-size: 11px; padding: 2px 8px;">
-              🔁 Repetição: 1
-            </span>
+            <!-- Connected Speech Didactic Card -->
+            <div id="player-cs-card" class="cs-card">
+              <div class="cs-header">
+                <span class="cs-title"><span>🔗</span> Raio-X de Connected Speech</span>
+                <span id="cs-sync-badge" class="badge" style="font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 6px; border: 1px solid rgba(16, 185, 129, 0.3);">⚡ Instantâneo</span>
+              </div>
+
+              <!-- Linked Text with Liaison Curves -->
+              <div id="player-cs-linked-text" class="cs-linked-display">
+                <!-- Linked HTML with ‿ -->
+              </div>
+
+              <!-- Blended Phonetics -->
+              <div class="cs-phonetic-row">
+                <div id="player-cs-blended-phonetic" class="cs-blended-phonetic" title="Como soa na vida real com as palavras emendadas"></div>
+                <div id="player-phonetic-ipa" class="cs-ipa-phonetic" title="Notação fonética IPA internacional"></div>
+              </div>
+
+              <!-- Rules & Stress rhythm -->
+              <div id="player-cs-rules" class="cs-rules-badges">
+                <!-- Badges populated here -->
+              </div>
+
+              <!-- Rhythm Stress Line -->
+              <div id="player-cs-stress" style="margin-top: 8px; font-size: 12px; color: var(--text-muted); text-align: left; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.06);">
+                <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-secondary); font-weight: 700; margin-right: 4px;">Ritmo:</span>
+                <span id="player-cs-stress-words"></span>
+              </div>
+            </div>
+
+            <!-- Counter badge -->
+            <div style="margin-top: 6px;">
+              <span id="player-reps-counter" class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--accent-secondary); font-size: 11px; padding: 2px 8px;">
+                🔁 Repetição: 1
+              </span>
+            </div>
           </div>
         </div>
 
@@ -485,6 +534,74 @@ function renderActivePlayerView(container) {
     });
   }
 
+  // Ghost Mode (Ouvido Cego) Toggle
+  const btnGhost = container.querySelector('#btn-toggle-ghost');
+  if (btnGhost) {
+    btnGhost.addEventListener('click', () => {
+      ghostListeningMode = !ghostListeningMode;
+      ghostRevealed = false;
+      refreshGhostUI();
+      showToast(ghostListeningMode ? '🙈 Modo Ouvido Cego ativado: Texto ocultado para focar na escuta!' : '👁️ Modo Leitura ativado!', 'info');
+    });
+  }
+
+  // Ghost curtain click to reveal
+  const ghostCurtain = container.querySelector('#ghost-curtain');
+  if (ghostCurtain) {
+    ghostCurtain.addEventListener('click', () => {
+      ghostRevealed = true;
+      refreshGhostUI();
+      showToast('✨ Legenda e Raio-X revelados!', 'success');
+    });
+  }
+
+  // Micro-Loop Toggle (2 seconds)
+  const btnMicroLoop = container.querySelector('#btn-toggle-microloop');
+  if (btnMicroLoop) {
+    btnMicroLoop.addEventListener('click', () => {
+      microLoopActive = !microLoopActive;
+      btnMicroLoop.classList.toggle('active', microLoopActive);
+      const textSpan = container.querySelector('#microloop-btn-text');
+      if (textSpan) {
+        textSpan.textContent = microLoopActive ? 'Micro-Loop (2s) ATIVO' : 'Micro-Loop (2s)';
+      }
+      showToast(microLoopActive ? '🎯 Micro-Loop ativado: repetindo os 2s iniciais da frase!' : 'Loop normal restaurado', 'info');
+      // Restart current clip timer
+      const currentClip = activeClipsList[activeTrackIndex];
+      if (currentClip) {
+        seekTo(currentClip.tempo_inicio);
+        play();
+      }
+    });
+  }
+
+  // Sync AI Cloud Deep Analysis
+  const btnSyncAi = container.querySelector('#btn-sync-ai-cloud');
+  if (btnSyncAi) {
+    btnSyncAi.addEventListener('click', async () => {
+      const currentClip = activeClipsList[activeTrackIndex];
+      if (!currentClip) return;
+
+      btnSyncAi.disabled = true;
+      btnSyncAi.innerHTML = '<span>⏳</span> <span>Analisando...</span>';
+
+      try {
+        const enriched = await syncDeepConnectedSpeechToDB(currentClip, updateClip);
+        if (enriched) {
+          currentClip.connected_speech = enriched;
+          updateConnectedSpeechUI(currentClip);
+          showToast('☁️ Raio-X detalhado sincronizado no Supabase (PC & Celular)!', 'success');
+        }
+      } catch (err) {
+        console.error('Error syncing AI connected speech:', err);
+        showToast('Erro ao sincronizar com a IA. Usando regras instantâneas locais.', 'warning');
+      } finally {
+        btnSyncAi.disabled = false;
+        btnSyncAi.innerHTML = '<span>✨</span> <span>Raio-X Nuvem</span>';
+      }
+    });
+  }
+
   // Attach player controls
   container.querySelector('#player-play-toggle').addEventListener('click', togglePlay);
   container.querySelector('#player-prev').addEventListener('click', prevTrack);
@@ -505,6 +622,115 @@ function renderActivePlayerView(container) {
   // Render tracklist and start playing active clip
   updateTracklistUI();
   loadAndPlayTrack(activeTrackIndex);
+}
+
+function refreshGhostUI() {
+  const curtain = document.getElementById('ghost-curtain');
+  const content = document.getElementById('ghost-content');
+  const btn = document.getElementById('btn-toggle-ghost');
+  const icon = document.getElementById('ghost-btn-icon');
+  const text = document.getElementById('ghost-btn-text');
+
+  if (!curtain || !content) return;
+
+  if (ghostListeningMode) {
+    if (btn) {
+      btn.style.background = 'rgba(129, 140, 248, 0.25)';
+      btn.style.borderColor = 'var(--accent-primary)';
+      btn.style.color = '#fff';
+    }
+    if (icon) icon.textContent = '👁️';
+    if (text) text.textContent = 'Modo Leitura';
+
+    if (!ghostRevealed) {
+      curtain.style.display = 'flex';
+      content.classList.add('ghost-blurred');
+    } else {
+      curtain.style.display = 'none';
+      content.classList.remove('ghost-blurred');
+    }
+  } else {
+    if (btn) {
+      btn.style.background = 'rgba(255,255,255,0.05)';
+      btn.style.borderColor = 'rgba(255,255,255,0.1)';
+      btn.style.color = '#e2e8f0';
+    }
+    if (icon) icon.textContent = '🙈';
+    if (text) text.textContent = 'Modo Ouvido Cego';
+
+    curtain.style.display = 'none';
+    content.classList.remove('ghost-blurred');
+  }
+}
+
+function updateConnectedSpeechUI(clip) {
+  if (!clip) return;
+  const csCard = document.getElementById('player-cs-card');
+  const linkedEl = document.getElementById('player-cs-linked-text');
+  const blendedEl = document.getElementById('player-cs-blended-phonetic');
+  const ipaEl = document.getElementById('player-phonetic-ipa');
+  const rulesEl = document.getElementById('player-cs-rules');
+  const stressEl = document.getElementById('player-cs-stress-words');
+  const syncBadge = document.getElementById('cs-sync-badge');
+
+  if (!csCard || !linkedEl) return;
+
+  const phrase = clip.nome || '';
+  const cs = clip.connected_speech || analyzeConnectedSpeech(phrase);
+  const { ipa, br } = getPhrasePhonetics(phrase);
+
+  // Linked HTML
+  linkedEl.innerHTML = cs.linkedHtml || escapeHtml(phrase);
+
+  // Blended Phonetic
+  const blended = cs.phonetic_connected_br || cs.blendedPhonetic || br || '';
+  if (blendedEl) {
+    blendedEl.textContent = blended;
+    blendedEl.title = 'Como soa no inglês real quando as palavras se conectam';
+  }
+
+  // IPA
+  if (ipaEl) {
+    ipaEl.textContent = cs.phonetic_ipa || clip.fonetica_ipa || ipa || '';
+  }
+
+  // Sync Badge
+  if (syncBadge) {
+    if (cs.ai_enriched) {
+      syncBadge.innerHTML = '☁️ Sincronizado Nuvem';
+      syncBadge.style.background = 'rgba(56, 189, 248, 0.15)';
+      syncBadge.style.color = 'var(--accent-secondary)';
+      syncBadge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+    } else {
+      syncBadge.innerHTML = '⚡ Instantâneo';
+      syncBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+      syncBadge.style.color = '#34d399';
+      syncBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+    }
+  }
+
+  // Rules badges
+  if (rulesEl) {
+    const rulesList = cs.rules || [];
+    if (rulesList.length > 0) {
+      rulesEl.innerHTML = rulesList.map(r => {
+        let typeClass = 'cs-badge-linking';
+        if (r.type === 'flap_t') typeClass = 'cs-badge-flap';
+        else if (r.type === 'palatal') typeClass = 'cs-badge-palatal';
+        else if (r.type === 'elision') typeClass = 'cs-badge-elision';
+        else if (r.type === 'reduction') typeClass = 'cs-badge-reduction';
+
+        return `<span class="cs-badge-pill ${typeClass}" title="${escapeHtml(r.description || '')}">${escapeHtml(r.label)}</span>`;
+      }).join('');
+    } else {
+      rulesEl.innerHTML = `<span class="text-xs text-muted" style="padding: 2px 4px;">Ritmo natural fluido</span>`;
+    }
+  }
+
+  // Stress rhythm
+  if (stressEl) {
+    stressEl.innerHTML = cs.stressHtml || escapeHtml(phrase);
+  }
 }
 
 function updateTracklistUI() {
@@ -549,6 +775,7 @@ async function loadAndPlayTrack(index) {
 
   playerReady = false;
   repetitionCount = 1;
+  ghostRevealed = false; // Reset ghost mode reveal on track switch
 
   const sentenceEl = document.getElementById('player-sentence');
   if (sentenceEl) sentenceEl.textContent = `"${clip.nome}"`;
@@ -565,8 +792,9 @@ async function loadAndPlayTrack(index) {
   const repsEl = document.getElementById('player-reps-counter');
   if (repsEl) repsEl.textContent = `🔁 Repetição: ${repetitionCount}`;
 
-  // ZERO TOKEN PHONETICS (Instant offline calculation & permanent cache)
-  loadOfflinePhonetics(clip);
+  // ZERO TOKEN PHONETICS & CONNECTED SPEECH (Instant offline calculation & permanent cache)
+  updateConnectedSpeechUI(clip);
+  refreshGhostUI();
 
   // Find matching video
   const matchingVideo = allVideos.find(v => String(v.id) === String(clip.video_id));
@@ -619,7 +847,11 @@ function startPlaylistTimer() {
   const clip = activeClipsList[activeTrackIndex];
   if (!clip) return;
 
-  const duration = Math.max(1, clip.tempo_fim - clip.tempo_inicio);
+  const totalDuration = Math.max(1, clip.tempo_fim - clip.tempo_inicio);
+  const loopEndTarget = microLoopActive
+    ? Math.min(clip.tempo_fim, clip.tempo_inicio + microLoopDuration)
+    : clip.tempo_fim;
+  const activeDuration = Math.max(0.5, loopEndTarget - clip.tempo_inicio);
 
   checkInterval = setInterval(() => {
     const player = getPlayer();
@@ -631,20 +863,20 @@ function startPlaylistTimer() {
       // Update progress bar
       if (current >= clip.tempo_inicio) {
         const elapsed = current - clip.tempo_inicio;
-        const pct = Math.min(100, Math.max(0, (elapsed / duration) * 100));
+        const pct = Math.min(100, Math.max(0, (elapsed / (microLoopActive ? activeDuration : totalDuration)) * 100));
         const bar = document.getElementById('player-progress-bar');
         const startSpan = document.getElementById('player-progress-start');
         if (bar) bar.style.width = `${pct}%`;
-        if (startSpan) startSpan.textContent = formatTime(Math.min(clip.tempo_fim, current));
+        if (startSpan) startSpan.textContent = formatTime(Math.min(loopEndTarget, current));
       }
 
       // Check boundary: Loop vs Auto-Advance
-      if (current >= clip.tempo_fim) {
+      if (current >= loopEndTarget) {
         repetitionCount++;
         const repsEl = document.getElementById('player-reps-counter');
         if (repsEl) repsEl.textContent = `🔁 Repetição: ${repetitionCount}`;
 
-        if (playbackMode === 'loop') {
+        if (playbackMode === 'loop' || microLoopActive) {
           seekTo(clip.tempo_inicio);
           play();
         } else if (playbackMode === 'playlist') {
@@ -654,7 +886,7 @@ function startPlaylistTimer() {
         }
       }
     } catch (e) {}
-  }, 120);
+  }, 100);
 }
 
 function stopPlaylistTimer() {

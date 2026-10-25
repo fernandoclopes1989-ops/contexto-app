@@ -18,6 +18,7 @@ import { createReviewCard } from '../srs.js';
 import { openTranscriptModal } from '../components/transcriptModal.js';
 import { openQuickCaptureModal } from '../components/quickCaptureModal.js';
 import { generateIPlusOneCardData, speakEnglish } from '../services/quickCardService.js';
+import { analyzeConnectedSpeech } from '../services/phoneticService.js';
 
 let currentVideoData = null;
 let activeClipId = null;
@@ -489,15 +490,40 @@ function renderClipItem(clip) {
     `;
   }
 
+  const cs = clip.connected_speech || analyzeConnectedSpeech(clip.nome || '');
+
   return `
-    <div class="clip-item ${isActive ? 'active-clip' : ''}" data-clip-id="${clip.id}">
-      <span class="clip-name">${escapeHtml(clip.nome || 'Trecho sem nome')}</span>
-      <span class="clip-time">${formatTime(clip.tempo_inicio)} → ${formatTime(clip.tempo_fim)}</span>
-      <div class="clip-actions">
-        <button class="btn btn-secondary btn-sm loop-clip-btn" data-clip-id="${clip.id}" data-start="${clip.tempo_inicio}" data-end="${clip.tempo_fim}" title="Loop">🔁</button>
-        <button class="btn btn-ghost btn-sm play-clip-btn" data-start="${clip.tempo_inicio}" title="Ir para">▶️</button>
-        <button class="btn btn-ghost btn-sm edit-clip-btn" data-clip-id="${clip.id}" title="Editar tempos">✏️</button>
-        <button class="btn btn-ghost btn-sm delete-clip-btn" data-clip-id="${clip.id}" title="Remover">🗑️</button>
+    <div class="clip-item ${isActive ? 'active-clip' : ''}" data-clip-id="${clip.id}" style="display: flex; flex-direction: column; gap: 6px; padding: 12px;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; width: 100%;">
+        <div style="flex: 1;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span class="clip-name" style="font-weight: 700; color: #fff; font-size: 14px;">${escapeHtml(clip.nome || 'Trecho sem nome')}</span>
+            ${cs.hasConnections ? `
+              <span class="badge" style="font-size: 10px; padding: 1px 6px; background: rgba(56, 189, 248, 0.12); color: var(--accent-secondary); border: 1px solid rgba(56, 189, 248, 0.25);">
+                🔗 Connected (${cs.rules.length})
+              </span>
+            ` : ''}
+          </div>
+
+          ${cs.hasConnections ? `
+            <div style="margin-top: 4px; font-size: 12px; line-height: 1.5; color: #e2e8f0; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.04);">
+              <span style="color: var(--text-muted); font-size: 10px; margin-right: 4px;">Raio-X:</span>
+              <span>${cs.linkedHtml}</span>
+              <span style="color: #fbbf24; font-weight: 700; margin-left: 6px; font-size: 11px;">${cs.blendedPhonetic}</span>
+            </div>
+          ` : ''}
+
+          <div class="clip-time" style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+            <span>⏱️ ${formatTime(clip.tempo_inicio)} → ${formatTime(clip.tempo_fim)}</span>
+          </div>
+        </div>
+
+        <div class="clip-actions" style="flex-shrink: 0;">
+          <button class="btn btn-secondary btn-sm loop-clip-btn" data-clip-id="${clip.id}" data-start="${clip.tempo_inicio}" data-end="${clip.tempo_fim}" title="Loop">🔁</button>
+          <button class="btn btn-ghost btn-sm play-clip-btn" data-start="${clip.tempo_inicio}" title="Ir para">▶️</button>
+          <button class="btn btn-ghost btn-sm edit-clip-btn" data-clip-id="${clip.id}" title="Editar tempos">✏️</button>
+          <button class="btn btn-ghost btn-sm delete-clip-btn" data-clip-id="${clip.id}" title="Remover">🗑️</button>
+        </div>
       </div>
     </div>
   `;

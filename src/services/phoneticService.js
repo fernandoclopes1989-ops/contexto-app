@@ -330,6 +330,221 @@ function wordToPhonetic(rawWord) {
   return { ipa, br };
 }
 
+// Function words that are naturally unstressed in spoken English (weak forms)
+const WEAK_FUNCTION_WORDS = new Set([
+  'a', 'an', 'the', 'and', 'but', 'or', 'to', 'of', 'in', 'on', 'at', 'for', 'from',
+  'with', 'as', 'by', 'that', 'this', 'is', 'am', 'are', 'was', 'were', 'be', 'been',
+  'do', 'does', 'did', 'have', 'has', 'had', 'can', 'could', 'would', 'should',
+  'it', 'its', 'us', 'them', 'him', 'her', 'your', 'my', 'his', 'our'
+]);
+
+// Vowel starting sounds (including silent-h or vowel phonemes)
+function startsWithVowelSound(word) {
+  if (!word) return false;
+  const w = word.toLowerCase();
+  return /^[aeiou]/i.test(w) || w === 'hour' || w === 'honest';
+}
+
+// Consonant ending sounds (accounting for silent-e where final consonant sound is pronounced)
+function getEndingConsonantSound(word) {
+  if (!word) return null;
+  const w = word.toLowerCase().replace(/[^a-z']/g, '');
+  if (!w) return null;
+
+  // Common silent-e words where consonant is pronounced: make->k, take->k, have->v, love->v, come->m
+  if (w.endsWith('e') && !w.endsWith('ee') && w.length > 2) {
+    const root = w.slice(0, -1);
+    if (/[bcdfghjklmnpqrstvwxyz]$/i.test(root)) {
+      return root[root.length - 1];
+    }
+  }
+
+  const lastChar = w[w.length - 1];
+  if (/[bcdfghjklmnpqrstvwxyz]/i.test(lastChar)) {
+    return lastChar;
+  }
+  return null;
+}
+
+/**
+ * 🎓 Zero-Token Didactic Connected Speech Analyzer
+ * Breaks down real conversational English into intuitive, linked speech blocks.
+ * 
+ * Identifies:
+ * 1. Linking (Consonant to Vowel — Liaison)
+ * 2. Flap T / Flap D (American Intervocalic T/D becoming tap /ɾ/ like 'cara')
+ * 3. Assimilation / Palatalization (T/D + Y -> 'tch' or 'dj')
+ * 4. Elision (dropped consonants in clusters or weak pronoun /h/)
+ * 5. Reductions & Weak Forms (gonna, wanna, kinda, schwa /ə/)
+ * 6. Stress rhythm (Content words vs Weak function words)
+ */
+export function analyzeConnectedSpeech(phrase) {
+  if (!phrase || typeof phrase !== 'string') {
+    return {
+      linkedHtml: '',
+      blendedPhonetic: '',
+      rules: [],
+      stressHtml: '',
+      hasConnections: false
+    };
+  }
+
+  const cleanPhrase = phrase.trim();
+  const rawWords = cleanPhrase.split(/\s+/).filter(Boolean);
+  if (rawWords.length === 0) {
+    return { linkedHtml: '', blendedPhonetic: '', rules: [], stressHtml: '', hasConnections: false };
+  }
+
+  const rulesMap = new Map();
+  const linkedSpans = [];
+  const blendedPhonetics = [];
+  const stressSpans = [];
+
+  for (let i = 0; i < rawWords.length; i++) {
+    const cur = rawWords[i];
+    const next = i < rawWords.length - 1 ? rawWords[i + 1] : null;
+
+    const curClean = cur.toLowerCase().replace(/[^a-z']/g, '');
+    const nextClean = next ? next.toLowerCase().replace(/[^a-z']/g, '') : '';
+
+    // Check stress rhythm
+    const isWeak = WEAK_FUNCTION_WORDS.has(curClean);
+    if (isWeak) {
+      stressSpans.push(`<span class="cs-weak-word" title="Palavra gramatical átona (som reduzido)">${cur}</span>`);
+    } else {
+      stressSpans.push(`<strong class="cs-stressed-word" title="Palavra de conteúdo (tônica / ritmo forte)">${cur}</strong>`);
+    }
+
+    const { br: curBr } = wordToPhonetic(curClean);
+    let phoneticRespelled = curBr || curClean;
+
+    // --- RULE 1: Reductions & Slang (gonna, wanna, gotta, etc.) ---
+    if (curClean === 'going' && nextClean === 'to') {
+      rulesMap.set('reduction_gonna', {
+        type: 'reduction',
+        label: '📉 Redução: going to → gonna',
+        description: '"going to" no dia a dia é falado quase sempre como "gonna" [gôna]'
+      });
+    } else if (curClean === 'want' && nextClean === 'to') {
+      rulesMap.set('reduction_wanna', {
+        type: 'reduction',
+        label: '📉 Redução: want to → wanna',
+        description: '"want to" vira "wanna" [uôna]'
+      });
+    } else if (curClean === 'got' && nextClean === 'to') {
+      rulesMap.set('reduction_gotta', {
+        type: 'reduction',
+        label: '📉 Redução: got to → gotta',
+        description: '"got to" vira "gotta" [góra] (com Flap T)'
+      });
+    } else if (curClean === 'kind' && nextClean === 'of') {
+      rulesMap.set('reduction_kinda', {
+        type: 'reduction',
+        label: '📉 Redução: kind of → kinda',
+        description: '"kind of" vira "kinda" [káinda]'
+      });
+    } else if (curClean === 'out' && nextClean === 'of') {
+      rulesMap.set('reduction_outta', {
+        type: 'reduction',
+        label: '📉 Redução: out of → outta',
+        description: '"out of" vira "outta" [áura]'
+      });
+    }
+
+    // Check boundary with next word
+    if (next) {
+      const endConsonant = getEndingConsonantSound(curClean);
+      const nextStartsVowel = startsWithVowelSound(nextClean);
+      const isYou = nextClean === 'you' || nextClean === 'your' || nextClean === "you're" || nextClean === "y'all";
+
+      // --- RULE 2: Assimilation / Palatalization (T/D + Y -> 'tch'/'dj') ---
+      if ((curClean.endsWith('t') || curClean.endsWith('d')) && isYou) {
+        const isT = curClean.endsWith('t');
+        const sound = isT ? 'tch' : 'dj';
+        rulesMap.set(`palatal_${curClean}_${nextClean}`, {
+          type: 'palatal',
+          label: `🤝 Palatalização: ${cur} + ${next} → [${sound}]`,
+          description: `O "${isT ? 't' : 'd'}" se funde com "${next}" criando o som de "${sound}" (ex: ${curClean} ${nextClean} soa "${sound === 'tch' ? 'mí-tchu' : 'dí-dju'}")`
+        });
+
+        linkedSpans.push(`<span class="cs-token-link cs-palatal" title="Fusão de som: vira ${sound}">${cur}<span class="cs-tie">‿</span></span>`);
+        blendedPhonetics.push(phoneticRespelled.replace(/[td]$/, sound));
+        continue;
+      }
+
+      // --- RULE 3: Flap T / Flap D (Intervocalic -> R de "arara") ---
+      const isFlapEligible = (curClean.endsWith('t') || curClean.endsWith('te') || curClean.endsWith('d')) && 
+                             /[aeiou]/i.test(curClean.slice(-3, -1) || curClean[0]) &&
+                             nextStartsVowel;
+
+      if (isFlapEligible) {
+        rulesMap.set(`flap_${curClean}_${nextClean}`, {
+          type: 'flap_t',
+          label: `⚡ Flap T: ${cur} + ${next} → [${curClean.replace(/te?$|d$/, '')}-r-${nextClean}]`,
+          description: `O "T/D" entre duas vogais vira o som de "R" suave do português (como em 'cara', 'arara')`
+        });
+
+        linkedSpans.push(`<span class="cs-token-link cs-flap" title="Flap T: som de R brando">${cur}<span class="cs-tie">‿</span></span>`);
+        blendedPhonetics.push(phoneticRespelled.replace(/[td]$/, 'r-'));
+        continue;
+      }
+
+      // --- RULE 4: Pronoun H-Dropping (tell him -> te-lim) ---
+      if (['him', 'her', 'his'].includes(nextClean) && endConsonant) {
+        rulesMap.set(`h_drop_${curClean}_${nextClean}`, {
+          type: 'elision',
+          label: `💨 H-Dropping: ${cur} + ${next}`,
+          description: `O "H" de "${nextClean}" desaparece no fluxo rápido e a consoante de "${curClean}" se conecta direto`
+        });
+
+        linkedSpans.push(`<span class="cs-token-link cs-elision" title="O 'H' some e conecta">${cur}<span class="cs-tie">‿</span></span>`);
+        blendedPhonetics.push(phoneticRespelled + '-');
+        continue;
+      }
+
+      // --- RULE 5: Standard Consonant + Vowel Linking (C-V Liaison) ---
+      if (endConsonant && nextStartsVowel) {
+        rulesMap.set(`linking_${curClean}_${nextClean}`, {
+          type: 'linking',
+          label: `🔗 Linking: ${cur} + ${next}`,
+          description: `A consoante final de "${curClean}" salta para o início de "${nextClean}" sem pausa no som`
+        });
+
+        linkedSpans.push(`<span class="cs-token-link cs-linking" title="Ligação: Consoante + Vogal">${cur}<span class="cs-tie">‿</span></span>`);
+        blendedPhonetics.push(phoneticRespelled + '-');
+        continue;
+      }
+
+      // --- RULE 6: Elision in Consonant Clusters (last night -> las-night) ---
+      if ((curClean.endsWith('st') || curClean.endsWith('ft') || curClean.endsWith('nd')) && !nextStartsVowel) {
+        rulesMap.set(`cluster_${curClean}`, {
+          type: 'elision',
+          label: `💨 Elisão: ${cur} (consoante omitida)`,
+          description: `O som final de "${curClean}" é suavemente suprimido para facilitar o fluxo com "${nextClean}"`
+        });
+
+        linkedSpans.push(`<span class="cs-token-link cs-elision" title="Som final atenuado">${cur} </span>`);
+        blendedPhonetics.push(phoneticRespelled.replace(/[td]$/, '') + ' ');
+        continue;
+      }
+    }
+
+    // Default token without connection to next
+    linkedSpans.push(`<span class="cs-token">${cur}</span> `);
+    blendedPhonetics.push(phoneticRespelled + ' ');
+  }
+
+  const rules = Array.from(rulesMap.values());
+
+  return {
+    linkedHtml: linkedSpans.join('').trim(),
+    blendedPhonetic: `[${blendedPhonetics.join('').trim().replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ')}]`,
+    rules: rules,
+    stressHtml: stressSpans.join(' '),
+    hasConnections: rules.length > 0
+  };
+}
+
 /**
  * Get permanent phonetic transcription for a full phrase (0 tokens, 100% offline)
  * @param {string} phrase
@@ -378,18 +593,92 @@ export function getPhrasePhonetics(phrase) {
 }
 
 /**
- * Batch enrich a list of clips with phonetics (Zero API tokens)
+ * Batch enrich a list of clips with phonetics & connected speech (Zero API tokens)
  * @param {Array} clips
- * @returns {Array} clips with fonetica_ipa and fonetica_br
+ * @returns {Array} clips with fonetica_ipa, fonetica_br, and connected_speech
  */
 export function enrichClipsWithPhonetics(clips) {
   if (!Array.isArray(clips)) return [];
   return clips.map(clip => {
-    const { ipa, br } = getPhrasePhonetics(clip.nome || clip.title || '');
+    const phrase = clip.nome || clip.title || '';
+    const { ipa, br } = getPhrasePhonetics(phrase);
+    const cs = analyzeConnectedSpeech(phrase);
     return {
       ...clip,
       fonetica_ipa: clip.fonetica_ipa || ipa,
-      fonetica_br: clip.fonetica_br || br
+      fonetica_br: clip.fonetica_br || br,
+      connected_speech: clip.connected_speech || cs
     };
   });
 }
+
+/**
+ * Deep AI Connected Speech Synchronizer (Syncs directly to Supabase cloud)
+ * Calls Gemini for deep linguistic breakdowns and saves to Supabase DB.
+ * @param {object} clip - The clip object from DB
+ * @param {function} updateClipFn - Database update function
+ */
+export async function syncDeepConnectedSpeechToDB(clip, updateClipFn) {
+  if (!clip || !clip.nome) return null;
+  const phrase = clip.nome.trim();
+
+  // Instant offline analysis first
+  const localAnalysis = analyzeConnectedSpeech(phrase);
+
+  try {
+    // Import Gemini caller dynamically
+    const { callGemini } = await import('../ai.js');
+    const prompt = `You are a world-class phonologist and English pronunciation coach specialized in Connected Speech for Brazilian Portuguese speakers.
+Analyze this spoken English sentence: "${phrase}"
+
+Identify:
+1. "linking_text": The phrase with liaison marks "‿" where words naturally connect (e.g., "check‿in", "hold‿on", "what‿is‿it").
+2. "phonetic_connected_br": Intuitive Brazilian Portuguese respelling of how it actually sounds blended together (e.g. "[che-kin]", "[uá-ri-zit]", "[di-dju]").
+3. "phonetic_ipa": Standard IPA notation for the connected utterance.
+4. "key_rules": Array of short Portuguese descriptions of what happened (e.g. ["Flap T: 'what is' soa 'uá-riz'", "Linking: consoante 'k' liga na vogal 'i'"]).
+
+Return STRICT JSON only, no markdown:
+{
+  "linking_text": "...",
+  "phonetic_connected_br": "...",
+  "phonetic_ipa": "...",
+  "key_rules": ["..."]
+}`;
+
+    const rawResponse = await callGemini(prompt);
+    let aiData = null;
+    try {
+      const cleanJson = rawResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
+      aiData = JSON.parse(cleanJson);
+    } catch (parseErr) {
+      console.warn('AI JSON parse fallback to local rules:', parseErr);
+    }
+
+    const merged = {
+      ...localAnalysis,
+      ai_enriched: true,
+      linking_text: aiData?.linking_text || localAnalysis.linkedHtml,
+      phonetic_connected_br: aiData?.phonetic_connected_br || localAnalysis.blendedPhonetic,
+      ai_rules: aiData?.key_rules || localAnalysis.rules.map(r => r.label)
+    };
+
+    // Save directly to the clip object
+    clip.connected_speech = merged;
+    if (aiData?.phonetic_ipa) clip.fonetica_ipa = aiData.phonetic_ipa;
+    if (aiData?.phonetic_connected_br) clip.fonetica_br = aiData.phonetic_connected_br;
+
+    if (typeof updateClipFn === 'function') {
+      await updateClipFn(clip);
+    }
+
+    return merged;
+  } catch (err) {
+    console.error('Deep Connected Speech error, using local analysis:', err);
+    clip.connected_speech = localAnalysis;
+    if (typeof updateClipFn === 'function') {
+      try { await updateClipFn(clip); } catch (e) {}
+    }
+    return localAnalysis;
+  }
+}
+
