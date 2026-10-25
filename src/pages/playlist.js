@@ -383,22 +383,47 @@ function renderActivePlayerView(container) {
 
           <!-- Ghost Content -->
           <div id="ghost-content" style="transition: filter 0.3s ease;">
-            <!-- Clean Single Card -->
-            <div id="player-cs-card" class="cs-card">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <!-- Clean Player Card -->
+            <div id="player-cs-card" class="cs-card" style="padding: 18px 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-lg); margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span style="font-size: 11px; font-weight: 800; color: var(--accent-secondary); text-transform: uppercase; letter-spacing: 1px;">
                   🎧 Frase em Repetição
                 </span>
-                <span id="cs-sync-badge" class="badge" style="font-size: 10px; padding: 1px 6px;">⚡ Instantâneo</span>
+                <span id="cs-sync-badge" class="badge" style="font-size: 10px; padding: 2px 8px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700;">
+                  ⚡ Fonética + Fala Conectada
+                </span>
               </div>
 
-              <!-- The Sentence (Shown ONCE, clean, no underlines) -->
-              <div id="player-sentence" class="cs-sentence-display">
+              <!-- 1. The English Sentence (Clean, prominent, white, easy to read) -->
+              <div id="player-sentence" style="font-size: 1.35rem; font-weight: 800; color: #ffffff; line-height: 1.45; text-align: center; margin-bottom: 14px; text-shadow: 0 2px 8px rgba(0,0,0,0.6);">
                 "${escapeHtml(clip?.nome || 'Carregando...')}"
               </div>
 
-              <!-- Sound Guide: Explaining what words connect and what sound they make -->
-              <div id="player-sound-guide"></div>
+              <!-- 2. The Phonetics Container (IPA + Aportuguesado + Fala Conectada) -->
+              <div id="player-phonetic-container" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; text-align: center;">
+                <!-- IPA Line -->
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                  <span style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px;">IPA</span>
+                  <span id="player-phonetic-ipa" style="font-size: 13px; font-family: 'Courier New', monospace; color: var(--accent-secondary); font-weight: 600; letter-spacing: 0.5px;"></span>
+                </div>
+
+                <!-- Aportuguesado (Palavra por Palavra) Line -->
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+                  <span style="font-size: 10px; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px; background: rgba(251, 191, 36, 0.12); padding: 1px 6px; border-radius: 4px;">Palavra a Palavra</span>
+                  <span id="player-phonetic-br" style="font-size: 13px; color: #fbbf24; font-weight: 600; font-style: italic;"></span>
+                </div>
+
+                <!-- Fala Conectada Real (Como o nativo emenda) -->
+                <div id="player-connected-row" style="padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.8px;">🗣️ Como Soa na Fala Real (Connected Speech):</span>
+                  </div>
+                  <div id="player-phonetic-connected" style="font-size: 15px; color: #67e8f9; font-weight: 800; letter-spacing: 0.3px; line-height: 1.4;"></div>
+                </div>
+              </div>
+
+              <!-- 3. Sound Guide: Explaining key word connections -->
+              <div id="player-sound-guide" style="margin-top: 10px;"></div>
             </div>
 
             <!-- Counter badge -->
@@ -626,26 +651,36 @@ function refreshGhostUI() {
 function updateConnectedSpeechUI(clip) {
   if (!clip) return;
   const sentenceEl = document.getElementById('player-sentence');
+  const ipaEl = document.getElementById('player-phonetic-ipa');
+  const brEl = document.getElementById('player-phonetic-br');
+  const connectedEl = document.getElementById('player-phonetic-connected');
   const guideEl = document.getElementById('player-sound-guide');
   const syncBadge = document.getElementById('cs-sync-badge');
 
   if (!sentenceEl) return;
 
   const phrase = clip.nome || '';
+  sentenceEl.textContent = `"${phrase}"`;
+
+  // 1. Get full 3-tier phonetic data (IPA, word-by-word, and connected speech flow)
+  const { ipa, br, connectedBr } = getPhrasePhonetics(phrase);
   const cs = (clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide))
     ? clip.connected_speech
     : analyzeConnectedSpeech(phrase);
 
-  // Single clean sentence with subtle highlight on connected words
-  sentenceEl.innerHTML = cs.linkedHtml ? `"${cs.linkedHtml}"` : `"${escapeHtml(phrase)}"`;
+  if (ipaEl) ipaEl.textContent = ipa || '—';
+  if (brEl) brEl.textContent = br || '—';
+  if (connectedEl) {
+    connectedEl.textContent = connectedBr || br || '—';
+  }
 
-  // Render direct sound guide (explaining "vira som de quê")
+  // 2. Render didactic guide explaining word connections
   if (guideEl) {
     if (cs.soundGuide && cs.soundGuide.length > 0) {
       guideEl.innerHTML = `
         <div class="cs-sound-guide-container">
           <div class="cs-sound-guide-title">
-            <span>🗣️</span> <span>Como o nativo realmente fala:</span>
+            <span>💡</span> <span>Entenda as Junções Desta Frase:</span>
           </div>
           ${cs.soundGuide.map(item => `
             <div class="cs-guide-row">
@@ -658,17 +693,11 @@ function updateConnectedSpeechUI(clip) {
         </div>
       `;
     } else {
-      guideEl.innerHTML = `
-        <div class="cs-sound-guide-container" style="padding: 8px 12px;">
-          <div class="cs-guide-detail" style="font-size: 12px; color: var(--text-muted); text-align: center;">
-            Fala pausada e natural: as palavras mantêm pronúncia isolada
-          </div>
-        </div>
-      `;
+      guideEl.innerHTML = '';
     }
   }
 
-  // Sync Badge
+  // 3. Sync Badge
   if (syncBadge) {
     if (cs.ai_enriched) {
       syncBadge.innerHTML = '☁️ Salvo na Nuvem';

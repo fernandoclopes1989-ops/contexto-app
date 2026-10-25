@@ -17,8 +17,7 @@ import { createPlayer, destroyPlayer, play, pause, seekTo, getCurrentTime, start
 import { createReviewCard } from '../srs.js';
 import { openTranscriptModal } from '../components/transcriptModal.js';
 import { openQuickCaptureModal } from '../components/quickCaptureModal.js';
-import { generateIPlusOneCardData, speakEnglish } from '../services/quickCardService.js';
-import { analyzeConnectedSpeech } from '../services/phoneticService.js';
+import { getPhrasePhonetics, analyzeConnectedSpeech } from '../services/phoneticService.js';
 
 let currentVideoData = null;
 let activeClipId = null;
@@ -490,20 +489,32 @@ function renderClipItem(clip) {
     `;
   }
 
+  const phrase = clip.nome || '';
+  const { ipa, br, connectedBr } = getPhrasePhonetics(phrase);
   const cs = (clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide))
     ? clip.connected_speech
-    : analyzeConnectedSpeech(clip.nome || '');
+    : analyzeConnectedSpeech(phrase);
 
   return `
     <div class="clip-item ${isActive ? 'active-clip' : ''}" data-clip-id="${clip.id}" style="display: flex; flex-direction: column; gap: 6px; padding: 12px;">
       <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; width: 100%;">
         <div style="flex: 1;">
           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-            <span class="clip-name" style="font-weight: 700; color: #fff; font-size: 14px;">${escapeHtml(clip.nome || 'Trecho sem nome')}</span>
+            <span class="clip-name" style="font-weight: 700; color: #fff; font-size: 14px;">${escapeHtml(phrase || 'Trecho sem nome')}</span>
           </div>
 
+          ${(ipa || br) ? `
+            <div style="margin-top: 4px; font-size: 12px; line-height: 1.4; display: flex; flex-direction: column; gap: 2px;">
+              ${ipa ? `<span style="color: var(--accent-secondary); font-family: monospace; font-size: 11px;">${escapeHtml(ipa)}</span>` : ''}
+              ${br ? `<span style="color: #fbbf24; font-style: italic;">${escapeHtml(br)}</span>` : ''}
+              ${(connectedBr && connectedBr !== br) ? `
+                <span style="color: #38bdf8; font-weight: 700; font-size: 12px;">🗣️ ${escapeHtml(connectedBr)}</span>
+              ` : ''}
+            </div>
+          ` : ''}
+
           ${cs.hasConnections ? `
-            <div style="margin-top: 4px; font-size: 12px; line-height: 1.5; color: #e2e8f0; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.04);">
+            <div style="margin-top: 4px; font-size: 11px; line-height: 1.5; color: #e2e8f0; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.04);">
               ${cs.soundGuide.map(g => `<span style="color:#fbbf24; font-weight:700; margin-right:8px; display:inline-block;">• ${escapeHtml(g.words)} ➔ "${escapeHtml(g.sound)}"</span>`).join('')}
             </div>
           ` : ''}

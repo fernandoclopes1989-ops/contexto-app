@@ -394,48 +394,47 @@ export function analyzeConnectedSpeech(phrase) {
   }
 
   const soundGuide = [];
-  const linkedSpans = [];
 
   for (let i = 0; i < rawWords.length; i++) {
     const cur = rawWords[i];
     const next = i < rawWords.length - 1 ? rawWords[i + 1] : null;
 
-    // Check if current word ends in punctuation (periods, commas, etc. prevent linking!)
+    // Check if current word ends in punctuation (punctuation prevents linking)
     const hasPunctuation = /[.,!?;:]$/.test(cur);
     const curClean = cur.toLowerCase().replace(/[^a-z']/g, '');
     const nextClean = next ? next.toLowerCase().replace(/[^a-z']/g, '') : '';
 
-    // --- RULE 1: Reductions & Slang (gonna, wanna, gotta, kinda, outta) ---
-    if (!hasPunctuation && next) {
+    if (!hasPunctuation && nextClean) {
+      // --- RULE 1: Reductions & Slang (gonna, wanna, gotta, kinda, outta) ---
       if (curClean === 'going' && nextClean === 'to') {
         soundGuide.push({
           words: 'going to',
           sound: 'gôna',
-          detail: 'Vira "gonna"'
+          detail: 'Redução natural na fala rápida (gonna)'
         });
       } else if (curClean === 'want' && nextClean === 'to') {
         soundGuide.push({
           words: 'want to',
           sound: 'uôna',
-          detail: 'Vira "wanna"'
+          detail: 'Redução natural na fala rápida (wanna)'
         });
       } else if (curClean === 'got' && nextClean === 'to') {
         soundGuide.push({
           words: 'got to',
           sound: 'góra',
-          detail: 'Vira "gotta" (com Flap T)'
+          detail: 'Redução com som de R brando (gotta)'
         });
       } else if (curClean === 'kind' && nextClean === 'of') {
         soundGuide.push({
           words: 'kind of',
           sound: 'káinda',
-          detail: 'Vira "kinda"'
+          detail: 'Redução natural na fala rápida (kinda)'
         });
       } else if (curClean === 'out' && nextClean === 'of') {
         soundGuide.push({
           words: 'out of',
           sound: 'áura',
-          detail: 'Vira "outta" (com Flap T)'
+          detail: 'Redução com Flap T (outta)'
         });
       }
 
@@ -443,64 +442,72 @@ export function analyzeConnectedSpeech(phrase) {
       const nextStartsVowel = startsWithVowelSound(nextClean);
       const isYou = nextClean === 'you' || nextClean === 'your' || nextClean === "you're" || nextClean === "y'all";
 
-      // --- RULE 2: Assimilation / Palatalization (T/D + Y -> 'tch' / 'dj') ---
+      // --- RULE 2: Palatalization (T/D + Y -> 'tch' / 'dj') ---
       if ((curClean.endsWith('t') || curClean.endsWith('d')) && isYou) {
         const isT = curClean.endsWith('t');
         const sound = isT ? 'tch' : 'dj';
         soundGuide.push({
           words: `${curClean} ${nextClean}`,
-          sound: isT ? `${curClean.slice(0, -1)}i-tchu` : `${curClean.slice(0, -1)}i-dju`,
-          detail: `O "${isT ? 't' : 'd'}" se funde com "you" virando som de "${sound}"`
+          sound: isT ? `${curClean.replace(/t$/, '')}-tchu` : `${curClean.replace(/d$/, '')}-dju`,
+          detail: `O som final se funde com "you" virando som de "${sound}"`
         });
-
-        linkedSpans.push(`<span class="cs-highlight-word">${cur}</span><span class="cs-tie">‿</span>`);
         continue;
       }
 
-      // --- RULE 3: Flap T / Flap D (Intervocalic -> som de R brando de "cara") ---
-      const isFlapEligible = (curClean.endsWith('t') || curClean.endsWith('te') || curClean.endsWith('d')) && 
-                             /[aeiou]/i.test(curClean.slice(-3, -1) || curClean[0]) &&
-                             nextStartsVowel;
+      // Consonant clusters that prevent Flap T/D (nasals, liquids, fricatives)
+      const isBlockedCluster = curClean.endsWith('nd') || curClean.endsWith('nt') ||
+                               curClean.endsWith('st') || curClean.endsWith('ct') ||
+                               curClean.endsWith('lt') || curClean.endsWith('pt') ||
+                               curClean.endsWith('rt') || curClean.endsWith('ld') ||
+                               curClean.endsWith('rd');
+
+      // --- RULE 3: Flap T / Flap D (REAL intervocalic between vowels -> som de R brando de "caro") ---
+      const hasVowelBeforeLast = curClean.endsWith('te')
+        ? /[aeiou]/i.test(curClean.slice(-3, -2))
+        : /[aeiou]/i.test(curClean.slice(-2, -1));
+
+      const isFlapEligible = (
+        (curClean.endsWith('t') || curClean.endsWith('te') || curClean.endsWith('d')) &&
+        hasVowelBeforeLast &&
+        !isBlockedCluster &&
+        nextStartsVowel
+      );
 
       if (isFlapEligible) {
-        const root = curClean.replace(/te?$|d$/, '');
+        const { br: curBr } = wordToPhonetic(curClean);
+        const { br: nextBr } = wordToPhonetic(nextClean);
+        const root = (curBr || curClean).replace(/[td]$/i, '').replace(/t[eéê]$/i, '');
         soundGuide.push({
           words: `${curClean} ${nextClean}`,
-          sound: `${root}-r-${nextClean}`,
-          detail: `O "T" vira som de "R" e emenda na próxima vogal`
+          sound: `${root}-r${nextBr || nextClean}`,
+          detail: `O "T/D" entre vogais vira som de "R" brando (como em "caro")`
         });
-
-        linkedSpans.push(`<span class="cs-highlight-word">${cur}</span><span class="cs-tie">‿</span>`);
         continue;
       }
 
-      // --- RULE 4: Pronoun H-Dropping (tell him -> te-lim) ---
+      // --- RULE 4: Pronoun H-Dropping (tell him -> té-lim) ---
       if (['him', 'her', 'his'].includes(nextClean) && endConsonant) {
+        const { br: curBr } = wordToPhonetic(curClean);
         soundGuide.push({
           words: `${curClean} ${nextClean}`,
-          sound: `${curClean}-${nextClean.slice(1)}`,
-          detail: `O "H" de "${nextClean}" some e a consoante gruda direto`
+          sound: `${curBr || curClean}-${nextClean.slice(1)}`,
+          detail: `O "H" de "${nextClean}" é omitido e a consoante anterior gruda direto`
         });
-
-        linkedSpans.push(`<span class="cs-highlight-word">${cur}</span><span class="cs-tie">‿</span>`);
         continue;
       }
 
-      // --- RULE 5: Standard Consonant + Vowel Linking (C-V) ---
+      // --- RULE 5: Standard Consonant + Vowel Linking (Liaison / Conexão Natural) ---
       if (endConsonant && nextStartsVowel) {
+        const { br: curBr } = wordToPhonetic(curClean);
+        const { br: nextBr } = wordToPhonetic(nextClean);
         soundGuide.push({
           words: `${curClean} ${nextClean}`,
-          sound: `${curClean}-${nextClean}`,
-          detail: `A consoante final gruda direto na vogal seguinte`
+          sound: `${curBr || curClean}-${nextBr || nextClean}`,
+          detail: `A consoante final gruda diretamente na vogal seguinte`
         });
-
-        linkedSpans.push(`<span class="cs-highlight-word">${cur}</span><span class="cs-tie">‿</span>`);
         continue;
       }
     }
-
-    // Normal word (no link to next)
-    linkedSpans.push(`<span>${cur}</span> `);
   }
 
   // Deduplicate and prioritize top 3 key sound transformations to avoid visual clutter
@@ -511,11 +518,11 @@ export function analyzeConnectedSpeech(phrase) {
       seenWords.add(item.words);
       uniqueGuide.push(item);
     }
-    if (uniqueGuide.length >= 3) break; // Maximum 3 clear, didactic items
+    if (uniqueGuide.length >= 3) break;
   }
 
   return {
-    linkedHtml: linkedSpans.join('').trim(),
+    linkedHtml: escapeHtml(phrase),
     soundGuide: uniqueGuide,
     hasConnections: uniqueGuide.length > 0
   };
@@ -523,44 +530,109 @@ export function analyzeConnectedSpeech(phrase) {
 
 /**
  * Get permanent phonetic transcription for a full phrase (0 tokens, 100% offline)
+ * Returns standard IPA, word-by-word Brazilian respelling, and Connected Speech flow.
  * @param {string} phrase
- * @returns {{ ipa: string, br: string }}
+ * @returns {{ ipa: string, br: string, connectedBr: string }}
  */
 export function getPhrasePhonetics(phrase) {
   if (!phrase || typeof phrase !== 'string') {
-    return { ipa: '', br: '' };
+    return { ipa: '', br: '', connectedBr: '' };
   }
 
   const cleanPhrase = phrase.trim();
-  const cacheKey = `phonetic_v3_${cleanPhrase.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+  const cacheKey = `phonetic_v4_${cleanPhrase.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
   // 1. Check localStorage permanent cache
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed.br) return parsed;
+      if (parsed.br && parsed.connectedBr) return parsed;
     }
   } catch (e) {}
 
   // 2. Compute instant offline phonetic respelling
-  const words = cleanPhrase.split(/\s+/);
+  const rawWords = cleanPhrase.split(/\s+/).filter(Boolean);
   const ipaTokens = [];
   const brTokens = [];
 
-  for (const word of words) {
-    if (!word) continue;
-    const { ipa, br } = wordToPhonetic(word);
+  for (const rawWord of rawWords) {
+    const cleanWord = rawWord.toLowerCase().replace(/[^a-z']/g, '');
+    if (!cleanWord) continue;
+    const { ipa, br } = wordToPhonetic(cleanWord);
     if (ipa) ipaTokens.push(ipa);
     if (br) brTokens.push(br);
   }
 
+  // 3. Build Connected Speech transcription flow (connecting linked syllables with hyphen)
+  const connectedTokens = [];
+  for (let i = 0; i < rawWords.length; i++) {
+    const curRaw = rawWords[i];
+    const curClean = curRaw.toLowerCase().replace(/[^a-z']/g, '');
+    const nextRaw = i < rawWords.length - 1 ? rawWords[i + 1] : null;
+    const nextClean = nextRaw ? nextRaw.toLowerCase().replace(/[^a-z']/g, '') : '';
+    const hasPunctuation = /[.,!?;:]$/.test(curRaw);
+
+    const { br: curBr } = wordToPhonetic(curClean);
+    if (!curBr) continue;
+
+    if (!hasPunctuation && nextClean) {
+      const { br: nextBr } = wordToPhonetic(nextClean);
+      const isYou = nextClean === 'you' || nextClean === 'your' || nextClean === "you're";
+      const nextStartsVowel = startsWithVowelSound(nextClean);
+      const isBlockedCluster = curClean.endsWith('nd') || curClean.endsWith('nt') ||
+                               curClean.endsWith('st') || curClean.endsWith('ct') ||
+                               curClean.endsWith('lt') || curClean.endsWith('pt') ||
+                               curClean.endsWith('rt') || curClean.endsWith('ld') ||
+                               curClean.endsWith('rd');
+
+      const hasVowelBeforeLast = curClean.endsWith('te')
+        ? /[aeiou]/i.test(curClean.slice(-3, -2))
+        : /[aeiou]/i.test(curClean.slice(-2, -1));
+
+      // 1. Palatalization (T/D + you -> tch/dj)
+      if ((curClean.endsWith('t') || curClean.endsWith('d')) && isYou) {
+        const isT = curClean.endsWith('t');
+        const prefix = curBr.replace(/[td]$/i, '');
+        connectedTokens.push(isT ? `${prefix}-tchu` : `${prefix}-dju`);
+        i++;
+        continue;
+      }
+
+      // 2. Flap T (real intervocalic tap R: lot of -> ló-rov, get it -> gué-rit, what is -> uó-riz)
+      const isFlapEligible = (
+        (curClean.endsWith('t') || curClean.endsWith('te')) &&
+        hasVowelBeforeLast &&
+        !isBlockedCluster &&
+        nextStartsVowel
+      );
+
+      if (isFlapEligible) {
+        const rootBr = curBr.replace(/[td]$/i, '').replace(/t[eéê]$/i, '');
+        connectedTokens.push(`${rootBr}-r${nextBr}`);
+        i++;
+        continue;
+      }
+
+      // 3. Regular Consonant + Vowel linking (e.g. have a -> ré-va, and I -> end-ái, lots of -> lót-sov)
+      const endConsonant = getEndingConsonantSound(curClean);
+      if (endConsonant && nextStartsVowel) {
+        connectedTokens.push(`${curBr}-${nextBr}`);
+        i++;
+        continue;
+      }
+    }
+
+    connectedTokens.push(curBr);
+  }
+
   const result = {
     ipa: ipaTokens.length > 0 ? `/${ipaTokens.join(' ')}/` : '',
-    br: brTokens.length > 0 ? `[${brTokens.join(' ')}]` : ''
+    br: brTokens.length > 0 ? `[${brTokens.join(' ')}]` : '',
+    connectedBr: connectedTokens.length > 0 ? `[${connectedTokens.join(' ')}]` : (brTokens.length > 0 ? `[${brTokens.join(' ')}]` : '')
   };
 
-  // 3. Store permanently so it is recorded forever
+  // 4. Store permanently in localStorage
   try {
     localStorage.setItem(cacheKey, JSON.stringify(result));
   } catch (e) {}
@@ -577,12 +649,13 @@ export function enrichClipsWithPhonetics(clips) {
   if (!Array.isArray(clips)) return [];
   return clips.map(clip => {
     const phrase = clip.nome || clip.title || '';
-    const { ipa, br } = getPhrasePhonetics(phrase);
+    const { ipa, br, connectedBr } = getPhrasePhonetics(phrase);
     const cs = analyzeConnectedSpeech(phrase);
     return {
       ...clip,
       fonetica_ipa: clip.fonetica_ipa || ipa,
       fonetica_br: clip.fonetica_br || br,
+      fonetica_connected: clip.fonetica_connected || connectedBr,
       connected_speech: clip.connected_speech || cs
     };
   });
