@@ -604,21 +604,21 @@ export async function syncDeepConnectedSpeechToDB(clip, updateClipFn) {
   try {
     // Import Gemini caller dynamically
     const { callGemini } = await import('../ai.js');
-    const prompt = `You are a world-class phonologist and English pronunciation coach specialized in Connected Speech for Brazilian Portuguese speakers.
+    const prompt = `You are a world-class English pronunciation coach specialized in Connected Speech for Brazilian Portuguese speakers.
 Analyze this spoken English sentence: "${phrase}"
 
-Identify:
-1. "linking_text": The phrase with liaison marks "‿" where words naturally connect (e.g., "check‿in", "hold‿on", "what‿is‿it").
-2. "phonetic_connected_br": Intuitive Brazilian Portuguese respelling of how it actually sounds blended together (e.g. "[che-kin]", "[uá-ri-zit]", "[di-dju]").
-3. "phonetic_ipa": Standard IPA notation for the connected utterance.
-4. "key_rules": Array of short Portuguese descriptions of what happened (e.g. ["Flap T: 'what is' soa 'uá-riz'", "Linking: consoante 'k' liga na vogal 'i'"]).
+Extract up to 3 most important word connections (linking, flap T, palatalization, reductions).
+For each, explain what words connect, what sound they make in Brazilian phonetics, and why.
 
 Return STRICT JSON only, no markdown:
 {
-  "linking_text": "...",
-  "phonetic_connected_br": "...",
-  "phonetic_ipa": "...",
-  "key_rules": ["..."]
+  "soundGuide": [
+    {
+      "words": "about it all",
+      "sound": "abáur-ir-ól",
+      "detail": "O T vira som de R suave e emenda direto"
+    }
+  ]
 }`;
 
     const rawResponse = await callGemini(prompt);
@@ -630,18 +630,19 @@ Return STRICT JSON only, no markdown:
       console.warn('AI JSON parse fallback to local rules:', parseErr);
     }
 
+    const guide = (aiData?.soundGuide && Array.isArray(aiData.soundGuide) && aiData.soundGuide.length > 0)
+      ? aiData.soundGuide
+      : localAnalysis.soundGuide;
+
     const merged = {
       ...localAnalysis,
       ai_enriched: true,
-      linking_text: aiData?.linking_text || localAnalysis.linkedHtml,
-      phonetic_connected_br: aiData?.phonetic_connected_br || localAnalysis.blendedPhonetic,
-      ai_rules: aiData?.key_rules || localAnalysis.rules.map(r => r.label)
+      soundGuide: guide,
+      hasConnections: guide.length > 0
     };
 
     // Save directly to the clip object
     clip.connected_speech = merged;
-    if (aiData?.phonetic_ipa) clip.fonetica_ipa = aiData.phonetic_ipa;
-    if (aiData?.phonetic_connected_br) clip.fonetica_br = aiData.phonetic_connected_br;
 
     if (typeof updateClipFn === 'function') {
       await updateClipFn(clip);
@@ -657,4 +658,5 @@ Return STRICT JSON only, no markdown:
     return localAnalysis;
   }
 }
+
 

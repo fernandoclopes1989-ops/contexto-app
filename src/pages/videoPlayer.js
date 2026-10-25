@@ -490,7 +490,9 @@ function renderClipItem(clip) {
     `;
   }
 
-  const cs = clip.connected_speech || analyzeConnectedSpeech(clip.nome || '');
+  const cs = (clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide))
+    ? clip.connected_speech
+    : analyzeConnectedSpeech(clip.nome || '');
 
   return `
     <div class="clip-item ${isActive ? 'active-clip' : ''}" data-clip-id="${clip.id}" style="display: flex; flex-direction: column; gap: 6px; padding: 12px;">

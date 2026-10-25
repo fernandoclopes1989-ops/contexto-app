@@ -632,7 +632,9 @@ function updateConnectedSpeechUI(clip) {
   if (!sentenceEl) return;
 
   const phrase = clip.nome || '';
-  const cs = clip.connected_speech || analyzeConnectedSpeech(phrase);
+  const cs = (clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide))
+    ? clip.connected_speech
+    : analyzeConnectedSpeech(phrase);
 
   // Single clean sentence with subtle highlight on connected words
   sentenceEl.innerHTML = cs.linkedHtml ? `"${cs.linkedHtml}"` : `"${escapeHtml(phrase)}"`;
