@@ -26,56 +26,69 @@ const PHONETIC_DICT = {
   'our': { ipa: 'aʊər', br: 'áuer' },
   'their': { ipa: 'ðɛər', br: 'dér' },
 
-  // Contractions & Conversational Slang
+  // Contractions & Conversational Slang (both with and without apostrophe)
   "i'm": { ipa: 'aɪm', br: 'áim' },
+  'im': { ipa: 'aɪm', br: 'áim' },
   "i've": { ipa: 'aɪv', br: 'áiv' },
+  'ive': { ipa: 'aɪv', br: 'áiv' },
   "i'll": { ipa: 'aɪl', br: 'áil' },
+  'ill': { ipa: 'aɪl', br: 'áil' },
   "i'd": { ipa: 'aɪd', br: 'áid' },
+  'id': { ipa: 'aɪd', br: 'áid' },
   "you're": { ipa: 'jʊər', br: 'iór' },
+  'youre': { ipa: 'jʊər', br: 'iór' },
   "you've": { ipa: 'juːv', br: 'iúv' },
+  'youve': { ipa: 'juːv', br: 'iúv' },
   "you'll": { ipa: 'juːl', br: 'iúl' },
+  'youll': { ipa: 'juːl', br: 'iúl' },
   "you'd": { ipa: 'juːd', br: 'iúd' },
+  'youd': { ipa: 'juːd', br: 'iúd' },
   "he's": { ipa: 'hiːz', br: 'ríz' },
+  'hes': { ipa: 'hiːz', br: 'ríz' },
   "she's": { ipa: 'ʃiːz', br: 'chíz' },
+  'shes': { ipa: 'ʃiːz', br: 'chíz' },
   "it's": { ipa: 'ɪts', br: 'its' },
+  'its': { ipa: 'ɪts', br: 'its' },
   "we're": { ipa: 'wɪər', br: 'uír' },
+  'were': { ipa: 'wɜːr', br: 'uêr' },
   "they're": { ipa: 'ðɛər', br: 'dér' },
+  'theyre': { ipa: 'ðɛər', br: 'dér' },
   "don't": { ipa: 'doʊnt', br: 'dôunt' },
-  "doesn't": { ipa: 'ˈdʌzənt', br: 'dâzent' },
-  "didn't": { ipa: 'ˈdɪdənt', br: 'dídnt' },
-  "can't": { ipa: 'kænt', br: 'ként' },
-  "won't": { ipa: 'woʊnt', br: 'uôunt' },
-  "wouldn't": { ipa: 'ˈwʊdənt', br: 'uúdent' },
-  "couldn't": { ipa: 'ˈkʊdənt', br: 'kúdent' },
-  "shouldn't": { ipa: 'ˈʃʊdənt', br: 'chúdent' },
-  "haven't": { ipa: 'ˈhævənt', br: 'révent' },
-  "hasn't": { ipa: 'ˈhæzənt', br: 'rézent' },
-  "hadn't": { ipa: 'ˈhædənt', br: 'rédent' },
-  "isn't": { ipa: 'ˈɪzənt', br: 'ízent' },
-  "aren't": { ipa: 'ɑːrnt', br: 'árnt' },
-  "wasn't": { ipa: 'ˈwʌzənt', br: 'uózent' },
-  "weren't": { ipa: 'wɜːrnt', br: 'uêrnt' },
   'dont': { ipa: 'doʊnt', br: 'dôunt' },
+  "doesn't": { ipa: 'ˈdʌzənt', br: 'dâzent' },
   'doesnt': { ipa: 'ˈdʌzənt', br: 'dâzent' },
+  "didn't": { ipa: 'ˈdɪdənt', br: 'dídnt' },
   'didnt': { ipa: 'ˈdɪdənt', br: 'dídnt' },
+  "can't": { ipa: 'kænt', br: 'ként' },
   'cant': { ipa: 'kænt', br: 'ként' },
+  "won't": { ipa: 'woʊnt', br: 'uôunt' },
   'wont': { ipa: 'woʊnt', br: 'uôunt' },
+  "wouldn't": { ipa: 'ˈwʊdənt', br: 'uúdent' },
   'wouldnt': { ipa: 'ˈwʊdənt', br: 'uúdent' },
+  "couldn't": { ipa: 'ˈkʊdənt', br: 'kúdent' },
   'couldnt': { ipa: 'ˈkʊdənt', br: 'kúdent' },
+  "shouldn't": { ipa: 'ˈʃʊdənt', br: 'chúdent' },
   'shouldnt': { ipa: 'ˈʃʊdənt', br: 'chúdent' },
+  "haven't": { ipa: 'ˈhævənt', br: 'révent' },
   'havent': { ipa: 'ˈhævənt', br: 'révent' },
+  "hasn't": { ipa: 'ˈhæzənt', br: 'rézent' },
   'hasnt': { ipa: 'ˈhæzənt', br: 'rézent' },
+  "hadn't": { ipa: 'ˈhædənt', br: 'rédent' },
   'hadnt': { ipa: 'ˈhædənt', br: 'rédent' },
+  "isn't": { ipa: 'ˈɪzənt', br: 'ízent' },
   'isnt': { ipa: 'ˈɪzənt', br: 'ízent' },
+  "aren't": { ipa: 'ɑːrnt', br: 'árnt' },
   'arent': { ipa: 'ɑːrnt', br: 'árnt' },
+  "wasn't": { ipa: 'ˈwʌzənt', br: 'uózent' },
   'wasnt': { ipa: 'ˈwʌzənt', br: 'uózent' },
+  "weren't": { ipa: 'wɜːrnt', br: 'uêrnt' },
   'wernt': { ipa: 'wɜːrnt', br: 'uêrnt' },
-  "gonna": { ipa: 'ˈɡənə', br: 'gôna' },
-  "wanna": { ipa: 'ˈwɑːnə', br: 'uôna' },
-  "gotta": { ipa: 'ˈɡɑːtə', br: 'góra' },
-  "kinda": { ipa: 'ˈkaɪndə', br: 'káinda' },
-  "lemme": { ipa: 'ˈlɛmi', br: 'lém-mi' },
-  "gimme": { ipa: 'ˈɡɪmi', br: 'guím-mi' },
+  'gonna': { ipa: 'ˈɡənə', br: 'gôna' },
+  'wanna': { ipa: 'ˈwɑːnə', br: 'uôna' },
+  'gotta': { ipa: 'ˈɡɑːtə', br: 'góra' },
+  'kinda': { ipa: 'ˈkaɪndə', br: 'káinda' },
+  'lemme': { ipa: 'ˈlɛmi', br: 'lém-mi' },
+  'gimme': { ipa: 'ˈɡɪmi', br: 'guím-mi' },
 
   // Auxiliary / Modal verbs
   'have': { ipa: 'hæv', br: 'rév' },
@@ -89,7 +102,6 @@ const PHONETIC_DICT = {
   'am': { ipa: 'æm', br: 'ém' },
   'are': { ipa: 'ɑːr', br: 'ar' },
   'was': { ipa: 'wʌz', br: 'uóz' },
-  'were': { ipa: 'wɜːr', br: 'uêr' },
   'be': { ipa: 'biː', br: 'bí' },
   'being': { ipa: 'ˈbiːɪŋ', br: 'bíin' },
   'can': { ipa: 'kæn', br: 'kén' },
@@ -134,74 +146,51 @@ const PHONETIC_DICT = {
   'over': { ipa: 'ˈoʊvər', br: 'ôuver' },
   'under': { ipa: 'ˈʌndər', br: 'ânder' },
   'between': { ipa: 'bɪˈtwiːn', br: 'bituín' },
-  'behind': { ipa: 'bɪˈhaɪnd', br: 'biráind' },
-  'before': { ipa: 'bɪˈfɔːr', br: 'bifór' },
-  'after': { ipa: 'ˈæftər', br: 'éfter' },
-  'during': { ipa: 'ˈdʊrɪŋ', br: 'dúrin' },
-  'since': { ipa: 'sɪns', br: 'síns' },
-  'until': { ipa: 'ənˈtɪl', br: 'antíl' },
-  'till': { ipa: 'tɪl', br: 'tíl' },
   'by': { ipa: 'baɪ', br: 'bái' },
   'as': { ipa: 'æz', br: 'éz' },
   'if': { ipa: 'ɪf', br: 'if' },
-  'that': { ipa: 'ðæt', br: 'dét' },
-  'this': { ipa: 'ðɪs', br: 'dís' },
-  'these': { ipa: 'ðiːz', br: 'díz' },
-  'those': { ipa: 'ðoʊz', br: 'dôuz' },
-  'then': { ipa: 'ðɛn', br: 'dén' },
-  'than': { ipa: 'ðæn', br: 'dén' },
-  'so': { ipa: 'soʊ', br: 'sôu' },
-  'because': { ipa: 'bɪˈkɔːz', br: 'bicóz' },
-  'though': { ipa: 'ðoʊ', br: 'dôu' },
-  'although': { ipa: 'ɔːlˈðoʊ', br: 'oldôu' },
-  'even': { ipa: 'ˈiːvən', br: 'íven' },
-  'just': { ipa: 'dʒʌst', br: 'djâst' },
-  'also': { ipa: 'ˈɔːlsoʊ', br: 'ólsou' },
-  'only': { ipa: 'ˈoʊnli', br: 'ôunli' },
-  'very': { ipa: 'ˈvɛri', br: 'véri' },
-  'really': { ipa: 'ˈrɪəli', br: 'ríeli' },
-  'too': { ipa: 'tuː', br: 'tú' },
-  'now': { ipa: 'naʊ', br: 'náu' },
-  'here': { ipa: 'hɪər', br: 'ríer' },
-  'there': { ipa: 'ðɛər', br: 'dér' },
-  'all': { ipa: 'ɔːl', br: 'ól' },
-  'some': { ipa: 'sʌm', br: 'sâm' },
-  'any': { ipa: 'ˈɛni', br: 'éni' },
-  'no': { ipa: 'noʊ', br: 'nôu' },
-  'not': { ipa: 'nɑːt', br: 'nót' },
-  'more': { ipa: 'mɔːr', br: 'mór' },
-  'most': { ipa: 'moʊst', br: 'môust' },
-  'much': { ipa: 'mʌtʃ', br: 'mâtch' },
-  'such': { ipa: 'sʌtʃ', br: 'sâtch' },
-  'each': { ipa: 'iːtʃ', br: 'ítch' },
-  'both': { ipa: 'boʊθ', br: 'bôut' },
-  'well': { ipa: 'wɛl', br: 'uél' },
-  'back': { ipa: 'bæk', br: 'bék' },
-  'down': { ipa: 'daʊn', br: 'dáun' },
   'up': { ipa: 'ʌp', br: 'âp' },
   'out': { ipa: 'aʊt', br: 'áut' },
   'off': { ipa: 'ɔːf', br: 'óf' },
-  'again': { ipa: 'əˈɡɛn', br: 'aguén' },
-  'away': { ipa: 'əˈweɪ', br: 'auêi' },
-  'still': { ipa: 'stɪl', br: 'stíl' },
-  'already': { ipa: 'ɔːlˈrɛdi', br: 'olrédi' },
-  'always': { ipa: 'ˈɔːlweɪz', br: 'ólueiz' },
-  'never': { ipa: 'ˈnɛvər', br: 'néver' },
-  'often': { ipa: 'ˈɔːfən', br: 'ófen' },
-  'maybe': { ipa: 'ˈmeɪbi', br: 'mêibi' },
-  'together': { ipa: 'təˈɡɛðər', br: 'tuguéder' },
+  'that': { ipa: 'ðæt', br: 'dét' },
+  'this': { ipa: 'ðɪs', br: 'dís' },
+  'then': { ipa: 'ðɛn', br: 'dén' },
+  'than': { ipa: 'ðæn', br: 'dén' },
+  'so': { ipa: 'soʊ', br: 'sôu' },
+  'here': { ipa: 'hɪər', br: 'ríer' },
+  'there': { ipa: 'ðɛər', br: 'dér' },
+  'all': { ipa: 'ɔːl', br: 'ól' },
+  'just': { ipa: 'dʒʌst', br: 'djâst' },
+  'now': { ipa: 'naʊ', br: 'náu' },
   'today': { ipa: 'təˈdeɪ', br: 'tudêi' },
-  'tomorrow': { ipa: 'təˈmɔːroʊ', br: 'tumórou' },
-  'yesterday': { ipa: 'ˈjɛstərdeɪ', br: 'iéstêrdei' },
-  'tonight': { ipa: 'təˈnaɪt', br: 'tunáit' },
+  'life': { ipa: 'laɪf', br: 'láif' },
+  'much': { ipa: 'mʌtʃ', br: 'mâtch' },
   'uh': { ipa: 'ə', br: 'â' },
   'um': { ipa: 'əm', br: 'âm' },
-  'yeah': { ipa: 'jɛə', br: 'ié' },
-  'yes': { ipa: 'jɛs', br: 'iés' },
-  'ok': { ipa: 'oʊˈkeɪ', br: 'oukêi' },
-  'okay': { ipa: 'oʊˈkeɪ', br: 'oukêi' },
 
-  // CRITICAL AMERICAN PHONETIC TARGETS (Sound-First, NEVER Letter-First)
+  // Verbs, Nouns & Adjectives (Show, Girlfriend, Welcome, Friends, etc.)
+  'show': { ipa: 'ʃoʊ', br: 'chôu' },
+  'shows': { ipa: 'ʃoʊz', br: 'chôuz' },
+  'showed': { ipa: 'ʃoʊd', br: 'chôud' },
+  'showing': { ipa: 'ˈʃoʊɪŋ', br: 'chôuin' },
+  'shown': { ipa: 'ʃoʊn', br: 'chôun' },
+  'girl': { ipa: 'ɡɜːrl', br: 'gârl' },
+  'girls': { ipa: 'ɡɜːrlz', br: 'gârlz' },
+  'girlfriend': { ipa: 'ˈɡɜːrlfrɛnd', br: 'gârlfrend' },
+  'girlfriends': { ipa: 'ˈɡɜːrlfrɛndz', br: 'gârlfrendz' },
+  'boy': { ipa: 'bɔɪ', br: 'bói' },
+  'boys': { ipa: 'bɔɪz', br: 'bóiz' },
+  'boyfriend': { ipa: 'ˈbɔɪfrɛnd', br: 'bóifrend' },
+  'boyfriends': { ipa: 'ˈbɔɪfrɛndz', br: 'bóifrendz' },
+  'friend': { ipa: 'frɛnd', br: 'frénd' },
+  'friends': { ipa: 'frɛndz', br: 'fréndz' },
+  'welcome': { ipa: 'ˈwɛlkəm', br: 'uélkâm' },
+  'welcomed': { ipa: 'ˈwɛlkəmd', br: 'uélkâmd' },
+  'welcoming': { ipa: 'ˈwɛlkəmɪŋ', br: 'uélkâmin' },
+  'new': { ipa: 'nuː', br: 'niú' },
+  'good': { ipa: 'ɡʊd', br: 'gúd' },
+  'bad': { ipa: 'bæd', br: 'béd' },
+  'great': { ipa: 'ɡreɪt', br: 'grêit' },
   'money': { ipa: 'ˈmʌni', br: 'mâni' },
   'honey': { ipa: 'ˈhʌni', br: 'hâni' },
   'color': { ipa: 'ˈkʌlər', br: 'câlâr' },
@@ -217,164 +206,74 @@ const PHONETIC_DICT = {
   'safety': { ipa: 'ˈseɪfti', br: 'sêifti' },
   'current': { ipa: 'ˈkɜːrənt', br: 'cârent' },
   'currently': { ipa: 'ˈkɜːrəntli', br: 'cârentli' },
-  'currency': { ipa: 'ˈkɜːrənsi', br: 'cârensi' },
   'event': { ipa: 'ɪˈvɛnt', br: 'ivént' },
   'events': { ipa: 'ɪˈvɛnts', br: 'ivénts' },
   'way': { ipa: 'weɪ', br: 'uêi' },
   'ways': { ipa: 'weɪz', br: 'uêis' },
   'discuss': { ipa: 'dɪˈskʌs', br: 'discâs' },
-  'discusses': { ipa: 'dɪˈskʌsɪz', br: 'discâsiz' },
-  'discussed': { ipa: 'dɪˈskʌst', br: 'discâst' },
   'discussing': { ipa: 'dɪˈskʌsɪŋ', br: 'discâssin' },
-  'discussion': { ipa: 'dɪˈskʌʃən', br: 'discâchon' },
   'expect': { ipa: 'ɪkˈspɛkt', br: 'ikspékt' },
-  'expects': { ipa: 'ɪkˈspɛkts', br: 'ikspékts' },
   'expected': { ipa: 'ɪkˈspɛktɪd', br: 'ikspéktid' },
-  'expecting': { ipa: 'ɪkˈspɛktɪŋ', br: 'ikspéktin' },
-  'expectation': { ipa: 'ˌɛkspekˈteɪʃən', br: 'ekspektêichon' },
-  'ex': { ipa: 'ɛks', br: 'éks' },
   'actually': { ipa: 'ˈæktʃuəli', br: 'éktchuali' },
-  'actual': { ipa: 'ˈæktʃuəl', br: 'éktchual' },
+  'ex': { ipa: 'ɛks', br: 'éks' },
   'rough': { ipa: 'rʌf', br: 'râf' },
-  'roughly': { ipa: 'ˈrʌfli', br: 'râfli' },
   'tough': { ipa: 'tʌf', br: 'tâf' },
   'enough': { ipa: 'ɪˈnʌf', br: 'inâf' },
   'patch': { ipa: 'pætʃ', br: 'pétch' },
   'patches': { ipa: 'ˈpætʃɪz', br: 'pétchiz' },
   'mean': { ipa: 'miːn', br: 'mín' },
-  'means': { ipa: 'miːnz', br: 'mínz' },
   'meant': { ipa: 'mɛnt', br: 'mént' },
-  'meaning': { ipa: 'ˈmiːnɪŋ', br: 'mínin' },
-
-  // Phonetic Traps (Silent Letters, Non-literal Vowels)
-  'half': { ipa: 'hæf', br: 'réf' },
-  'halves': { ipa: 'hævz', br: 'révz' },
-  'talk': { ipa: 'tɔːk', br: 'tók' },
-  'talks': { ipa: 'tɔːks', br: 'tóks' },
-  'talked': { ipa: 'tɔːkt', br: 'tókt' },
-  'talking': { ipa: 'ˈtɔːkɪŋ', br: 'tókin' },
-  'walk': { ipa: 'wɔːk', br: 'uók' },
-  'walks': { ipa: 'wɔːks', br: 'uóks' },
-  'walked': { ipa: 'wɔːkt', br: 'uókt' },
-  'walking': { ipa: 'ˈwɔːkɪŋ', br: 'uókin' },
-  'choir': { ipa: 'kwaɪər', br: 'kuáier' },
-  'island': { ipa: 'ˈaɪlənd', br: 'áilend' },
-  'islands': { ipa: 'ˈaɪləndz', br: 'áilendz' },
-  'listen': { ipa: 'ˈlɪsən', br: 'lísen' },
-  'listened': { ipa: 'ˈlɪsənd', br: 'lísend' },
-  'listening': { ipa: 'ˈlɪsənɪŋ', br: 'lísenin' },
-  'doubt': { ipa: 'daʊt', br: 'dáut' },
-  'doubts': { ipa: 'daʊts', br: 'dáuts' },
-  'debt': { ipa: 'dɛt', br: 'dét' },
-  'debts': { ipa: 'dɛts', br: 'déts' },
-  'subtle': { ipa: 'ˈsʌtəl', br: 'sâtol' },
-  'receipt': { ipa: 'rɪˈsiːt', br: 'risít' },
-  'receipts': { ipa: 'rɪˈsiːts', br: 'risíts' },
-  'write': { ipa: 'raɪt', br: 'ráit' },
-  'writing': { ipa: 'ˈraɪtɪŋ', br: 'ráirin' },
-  'written': { ipa: 'ˈrɪtən', br: 'rítn' },
-  'wrote': { ipa: 'roʊt', br: 'rôut' },
-  'wrong': { ipa: 'rɔːŋ', br: 'róng' },
-  'knife': { ipa: 'naɪf', br: 'náif' },
-  'knives': { ipa: 'naɪvz', br: 'náivz' },
+  'love': { ipa: 'lʌv', br: 'lâv' },
+  'like': { ipa: 'laɪk', br: 'láik' },
+  'get': { ipa: 'ɡɛt', br: 'guét' },
+  'gets': { ipa: 'ɡɛts', br: 'guéts' },
+  'got': { ipa: 'ɡɑːt', br: 'gót' },
+  'getting': { ipa: 'ˈɡɛtɪŋ', br: 'guérin' },
+  'give': { ipa: 'ɡɪv', br: 'guív' },
+  'gives': { ipa: 'ɡɪvz', br: 'guívz' },
+  'giving': { ipa: 'ˈɡɪvɪŋ', br: 'guívin' },
+  'make': { ipa: 'meɪk', br: 'mêik' },
+  'made': { ipa: 'meɪd', br: 'mêid' },
+  'go': { ipa: 'ɡoʊ', br: 'gôu' },
+  'went': { ipa: 'wɛnt', br: 'uént' },
+  'gone': { ipa: 'ɡɔːn', br: 'gón' },
+  'going': { ipa: 'ˈɡoʊɪŋ', br: 'gôuin' },
+  'see': { ipa: 'siː', br: 'sí' },
+  'saw': { ipa: 'sɔː', br: 'só' },
+  'seen': { ipa: 'siːn', br: 'sín' },
   'know': { ipa: 'noʊ', br: 'nôu' },
-  'knows': { ipa: 'noʊz', br: 'nôuz' },
-  'knew': { ipa: 'nuː', br: 'niú' },
-  'known': { ipa: 'noʊn', br: 'nôun' },
-  'knowing': { ipa: 'ˈnoʊɪŋ', br: 'nôuin' },
-  'knee': { ipa: 'niː', br: 'ní' },
-  'knees': { ipa: 'niːz', br: 'níz' },
-  'castle': { ipa: 'ˈkæsəl', br: 'késol' },
-  'salmon': { ipa: 'ˈsæmən', br: 'sémon' },
-  'almond': { ipa: 'ˈɑːmənd', br: 'ámond' },
-  'calm': { ipa: 'kɑːm', br: 'kám' },
-  'palm': { ipa: 'pɑːm', br: 'pám' },
-  'climb': { ipa: 'klaɪm', br: 'kláim' },
-  'climbed': { ipa: 'klaɪmd', br: 'kláimd' },
-  'comb': { ipa: 'koʊm', br: 'kôum' },
-  'tomb': { ipa: 'tuːm', br: 'túm' },
-  'bomb': { ipa: 'bɑːm', br: 'bóm' },
-  'blood': { ipa: 'blʌd', br: 'blâd' },
-  'flood': { ipa: 'flʌd', br: 'flâd' },
-  'done': { ipa: 'dʌn', br: 'dân' },
-  'won': { ipa: 'wʌn', br: 'uân' },
-  'one': { ipa: 'wʌn', br: 'uân' },
-  'son': { ipa: 'sʌn', br: 'sân' },
-  'sun': { ipa: 'sʌn', br: 'sân' },
-  'ton': { ipa: 'tʌn', br: 'tân' },
-  'tons': { ipa: 'tʌnz', br: 'tânz' },
-  'none': { ipa: 'nʌn', br: 'nân' },
-  'month': { ipa: 'mʌnθ', br: 'mânt' },
-  'months': { ipa: 'mʌnθs', br: 'mânts' },
-  'front': { ipa: 'frʌnt', br: 'frânt' },
-  'other': { ipa: 'ˈʌðər', br: 'âder' },
-  'others': { ipa: 'ˈʌðərz', br: 'âderz' },
-  'another': { ipa: 'əˈnʌðər', br: 'anâder' },
-  'mother': { ipa: 'ˈmʌðər', br: 'mâder' },
-  'brother': { ipa: 'ˈbrʌðər', br: 'brâder' },
-  'nothing': { ipa: 'ˈnʌθɪŋ', br: 'nâtin' },
-  'company': { ipa: 'ˈkʌmpəni', br: 'kâmpani' },
-  'country': { ipa: 'ˈkʌntri', br: 'kântri' },
-  'countries': { ipa: 'ˈkʌntriz', br: 'kântriz' },
-  'couple': { ipa: 'ˈkʌpəl', br: 'kâpol' },
-  'trouble': { ipa: 'ˈtrʌbəl', br: 'trâbol' },
-  'wonder': { ipa: 'ˈwʌndər', br: 'uânder' },
-  'wonderful': { ipa: 'ˈwʌndərfəl', br: 'uânderfol' },
-  'cover': { ipa: 'ˈkʌvər', br: 'câver' },
-  'discover': { ipa: 'dɪˈskʌvər', br: 'discâver' },
-
-  // Common spoken verbs & nouns
-  'life': { ipa: 'laɪf', br: 'láif' },
+  'take': { ipa: 'teɪk', br: 'têik' },
+  'think': { ipa: 'θɪŋk', br: 'tínk' },
+  'look': { ipa: 'lʊk', br: 'lúk' },
+  'want': { ipa: 'wɑːnt', br: 'uónt' },
+  'use': { ipa: 'juːz', br: 'iúz' },
+  'find': { ipa: 'faɪnd', br: 'fáind' },
+  'tell': { ipa: 'tɛl', br: 'tél' },
+  'ask': { ipa: 'æsk', br: 'ésk' },
+  'work': { ipa: 'wɜːrk', br: 'uêrk' },
+  'feel': { ipa: 'fiːl', br: 'fíl' },
+  'try': { ipa: 'traɪ', br: 'trái' },
+  'leave': { ipa: 'liːv', br: 'lív' },
+  'call': { ipa: 'kɔːl', br: 'kól' },
+  'move': { ipa: 'muːv', br: 'múv' },
+  'live': { ipa: 'lɪv', br: 'lív' },
+  'stay': { ipa: 'steɪ', br: 'stêi' },
   'time': { ipa: 'taɪm', br: 'táim' },
-  'year': { ipa: 'jɪər', br: 'íer' },
-  'years': { ipa: 'jɪərz', br: 'íerz' },
   'people': { ipa: 'ˈpiːpəl', br: 'pípol' },
-  'person': { ipa: 'ˈpɜːrsən', br: 'pêrsen' },
   'thing': { ipa: 'θɪŋ', br: 'tíng' },
   'things': { ipa: 'θɪŋz', br: 'tíngz' },
   'world': { ipa: 'wɜːrld', br: 'uêrld' },
-  'hand': { ipa: 'hænd', br: 'rénd' },
-  'hands': { ipa: 'hændz', br: 'réndz' },
-  'part': { ipa: 'pɑːrt', br: 'párt' },
-  'parts': { ipa: 'pɑːrts', br: 'párts' },
   'place': { ipa: 'pleɪs', br: 'plêis' },
-  'places': { ipa: 'ˈpleɪsɪz', br: 'plêisiz' },
-  'week': { ipa: 'wiːk', br: 'uík' },
-  'weeks': { ipa: 'wiːks', br: 'uíks' },
-  'case': { ipa: 'keɪs', br: 'kêis' },
-  'cases': { ipa: 'ˈkeɪsɪz', br: 'kêisiz' },
-  'group': { ipa: 'ɡruːp', br: 'grúp' },
-  'problem': { ipa: 'ˈprɑːbləm', br: 'próblem' },
-  'problems': { ipa: 'ˈprɑːbləmz', br: 'próblemz' },
-  'fact': { ipa: 'fækt', br: 'fékt' },
-  'facts': { ipa: 'fækts', br: 'fékts' },
   'lot': { ipa: 'lɑːt', br: 'lót' },
   'lots': { ipa: 'lɑːts', br: 'lóts' },
   'video': { ipa: 'ˈvɪdioʊ', br: 'vídiou' },
   'videos': { ipa: 'ˈvɪdioʊz', br: 'vídiouz' },
   'night': { ipa: 'naɪt', br: 'náit' },
   'day': { ipa: 'deɪ', br: 'dêi' },
-  'days': { ipa: 'deɪz', br: 'dêiz' },
-  'room': { ipa: 'ruːm', br: 'rúm' },
   'water': { ipa: 'ˈwɔːtər', br: 'uórer' },
   'head': { ipa: 'hɛd', br: 'réd' },
-  'side': { ipa: 'saɪd', br: 'sáid' },
-  'kind': { ipa: 'kaɪnd', br: 'káind' },
-  'love': { ipa: 'lʌv', br: 'lâv' },
-  'loves': { ipa: 'lʌvz', br: 'lâvz' },
-  'loved': { ipa: 'lʌvd', br: 'lâvd' },
-  'loving': { ipa: 'ˈlʌvɪŋ', br: 'lâvin' },
-  'like': { ipa: 'laɪk', br: 'láik' },
-  'likes': { ipa: 'laɪks', br: 'láiks' },
-  'liked': { ipa: 'laɪkt', br: 'láikt' },
-  'liking': { ipa: 'ˈlaɪkɪŋ', br: 'láikin' },
-  'good': { ipa: 'ɡʊd', br: 'gúd' },
-  'new': { ipa: 'nuː', br: 'niú' },
   'first': { ipa: 'fɜːrst', br: 'fêrst' },
   'last': { ipa: 'læst', br: 'lést' },
-  'long': { ipa: 'lɔːŋ', br: 'lóng' },
-  'great': { ipa: 'ɡreɪt', br: 'grêit' },
-  'little': { ipa: 'ˈlɪtəl', br: 'lítol' },
   'own': { ipa: 'oʊn', br: 'ôun' },
   'old': { ipa: 'oʊld', br: 'ôuld' },
   'right': { ipa: 'raɪt', br: 'ráit' },
@@ -382,95 +281,48 @@ const PHONETIC_DICT = {
   'high': { ipa: 'haɪ', br: 'rái' },
   'different': { ipa: 'ˈdɪfərənt', br: 'díferent' },
   'small': { ipa: 'smɔːl', br: 'smól' },
-  'large': { ipa: 'lɑːrdʒ', br: 'lardj' },
   'next': { ipa: 'nɛkst', br: 'nékst' },
   'early': { ipa: 'ˈɜːrli', br: 'êrli' },
   'young': { ipa: 'jʌŋ', br: 'iân' },
-  'important': { ipa: 'ɪmˈpɔːrtənt', br: 'impórtant' },
-  'few': { ipa: 'fjuː', br: 'fiú' },
-  'public': { ipa: 'ˈpʌblɪk', br: 'pâblic' },
-  'bad': { ipa: 'bæd', br: 'béd' },
   'same': { ipa: 'seɪm', br: 'sêim' },
   'able': { ipa: 'ˈeɪbəl', br: 'êibol' },
   'say': { ipa: 'seɪ', br: 'sêi' },
-  'says': { ipa: 'sɛz', br: 'séz' },
   'said': { ipa: 'sɛd', br: 'séd' },
-  'get': { ipa: 'ɡɛt', br: 'guét' },
-  'gets': { ipa: 'ɡɛts', br: 'guéts' },
-  'got': { ipa: 'ɡɑːt', br: 'gót' },
-  'getting': { ipa: 'ˈɡɛtɪŋ', br: 'guérin' },
-  'make': { ipa: 'meɪk', br: 'mêik' },
-  'makes': { ipa: 'meɪks', br: 'mêiks' },
-  'made': { ipa: 'meɪd', br: 'mêid' },
-  'making': { ipa: 'ˈmeɪkɪŋ', br: 'mêikin' },
-  'go': { ipa: 'ɡoʊ', br: 'gôu' },
-  'goes': { ipa: 'ɡoʊz', br: 'gôuz' },
-  'went': { ipa: 'wɛnt', br: 'uént' },
-  'gone': { ipa: 'ɡɔːn', br: 'gón' },
-  'going': { ipa: 'ˈɡoʊɪŋ', br: 'gôuin' },
-  'see': { ipa: 'siː', br: 'sí' },
-  'sees': { ipa: 'siːz', br: 'síz' },
-  'saw': { ipa: 'sɔː', br: 'só' },
-  'seen': { ipa: 'siːn', br: 'sín' },
-  'seeing': { ipa: 'ˈsiːɪŋ', br: 'síin' },
-  'know': { ipa: 'noʊ', br: 'nôu' },
-  'take': { ipa: 'teɪk', br: 'têik' },
-  'takes': { ipa: 'teɪks', br: 'têiks' },
-  'took': { ipa: 'tʊk', br: 'túk' },
-  'taken': { ipa: 'ˈteɪkən', br: 'têiken' },
-  'taking': { ipa: 'ˈteɪkɪŋ', br: 'têikin' },
-  'think': { ipa: 'θɪŋk', br: 'tínk' },
-  'thinks': { ipa: 'θɪŋks', br: 'tínks' },
-  'thought': { ipa: 'θɔːt', br: 'tót' },
-  'thinking': { ipa: 'ˈθɪŋkɪŋ', br: 'tínkin' },
-  'look': { ipa: 'lʊk', br: 'lúk' },
-  'looks': { ipa: 'lʊks', br: 'lúks' },
-  'looked': { ipa: 'lʊkt', br: 'lúkt' },
-  'looking': { ipa: 'ˈlʊkɪŋ', br: 'lúkin' },
-  'want': { ipa: 'wɑːnt', br: 'uónt' },
-  'wants': { ipa: 'wɑːnts', br: 'uónts' },
-  'wanted': { ipa: 'ˈwɑːntɪd', br: 'uóntid' },
-  'wanting': { ipa: 'ˈwɑːntɪŋ', br: 'uóntin' },
-  'give': { ipa: 'ɡɪv', br: 'guív' },
-  'gives': { ipa: 'ɡɪvz', br: 'guívz' },
-  'gave': { ipa: 'ɡeɪv', br: 'guêiv' },
-  'given': { ipa: 'ˈɡɪvən', br: 'guíven' },
-  'giving': { ipa: 'ˈɡɪvɪŋ', br: 'guívin' },
-  'use': { ipa: 'juːz', br: 'iúz' },
-  'uses': { ipa: 'ˈjuːzɪz', br: 'iúziz' },
-  'used': { ipa: 'juːzd', br: 'iúzd' },
-  'using': { ipa: 'ˈjuːzɪŋ', br: 'iúzin' },
-  'find': { ipa: 'faɪnd', br: 'fáind' },
-  'finds': { ipa: 'faɪndz', br: 'fáindz' },
-  'found': { ipa: 'faʊnd', br: 'fáund' },
-  'finding': { ipa: 'ˈfaɪndɪŋ', br: 'fáindin' },
-  'tell': { ipa: 'tɛl', br: 'tél' },
-  'tells': { ipa: 'tɛlz', br: 'télz' },
-  'told': { ipa: 'toʊld', br: 'tôuld' },
-  'telling': { ipa: 'ˈtɛlɪŋ', br: 'télin' },
-  'ask': { ipa: 'æsk', br: 'ésk' },
-  'work': { ipa: 'wɜːrk', br: 'uêrk' },
-  'seem': { ipa: 'siːm', br: 'sím' },
-  'feel': { ipa: 'fiːl', br: 'fíl' },
-  'try': { ipa: 'traɪ', br: 'trái' },
-  'leave': { ipa: 'liːv', br: 'lív' },
-  'call': { ipa: 'kɔːl', br: 'kól' },
-  'move': { ipa: 'muːv', br: 'múv' },
-  'moving': { ipa: 'ˈmuːvɪŋ', br: 'múvin' },
-  'moved': { ipa: 'muːvd', br: 'múvd' },
-  'live': { ipa: 'lɪv', br: 'lív' },
-  'living': { ipa: 'ˈlɪvɪŋ', br: 'lívin' },
-  'lived': { ipa: 'lɪvd', br: 'lívd' },
-  'stay': { ipa: 'steɪ', br: 'stêi' },
-  'staying': { ipa: 'ˈsteɪɪŋ', br: 'stêiin' },
-  'stayed': { ipa: 'steɪd', br: 'stêid' },
-  'nyc': { ipa: 'ˌɛn waɪ ˈsiː', br: 'en uái sí' },
-  'york': { ipa: 'jɔːrk', br: 'iórk' }
+  'put': { ipa: 'pʊt', br: 'pút' },
+  'end': { ipa: 'ɛnd', br: 'énd' },
+  'home': { ipa: 'hoʊm', br: 'rôum' },
+  'house': { ipa: 'haʊs', br: 'ráus' },
+  'side': { ipa: 'saɪd', br: 'sáid' },
+  'point': { ipa: 'pɔɪnt', br: 'póint' },
+  'city': { ipa: 'ˈsɪti', br: 'síti' },
+  'country': { ipa: 'ˈkʌntri', br: 'kântri' },
+  'mother': { ipa: 'ˈmʌðər', br: 'mâder' },
+  'father': { ipa: 'ˈfɑːðər', br: 'fáder' },
+  'brother': { ipa: 'ˈbrʌðər', br: 'brâder' },
+  'sister': { ipa: 'ˈsɪstər', br: 'síster' },
+  'family': { ipa: 'ˈfæməli', br: 'fémili' },
+  'half': { ipa: 'hæf', br: 'réf' },
+  'talk': { ipa: 'tɔːk', br: 'tók' },
+  'walk': { ipa: 'wɔːk', br: 'uók' },
+  'listen': { ipa: 'ˈlɪsən', br: 'lísen' },
+  'doubt': { ipa: 'daʊt', br: 'dáut' },
+  'debt': { ipa: 'dɛt', br: 'dét' },
+  'knife': { ipa: 'naɪf', br: 'náif' },
+  'write': { ipa: 'raɪt', br: 'ráit' },
+  'wrong': { ipa: 'rɔːŋ', br: 'róng' },
+  'choir': { ipa: 'kwaɪər', br: 'kuáier' },
+  'island': { ipa: 'ˈaɪlənd', br: 'áilend' },
+  'castle': { ipa: 'ˈkæsəl', br: 'késol' },
+  'christmas': { ipa: 'ˈkrɪsməs', br: 'krísmes' },
+  'episode': { ipa: 'ˈɛpɪsoʊd', br: 'épisôud' },
+  'every': { ipa: 'ˈɛvri', br: 'évri' },
+  'netflix': { ipa: 'ˈnɛtflɪks', br: 'nétfliks' },
+  'holiday': { ipa: 'ˈhɑːlɪdeɪ', br: 'rólidêi' },
+  'holidays': { ipa: 'ˈhɑːlɪdeɪz', br: 'rólidêiz' },
+  'happy': { ipa: 'ˈhæpi', br: 'répi' }
 };
 
 // 2. Phonetic Traps: Words where pronunciation diverges heavily from English spelling.
-// Strictly restricted to severe traps (silent letters, major vowel discrepancies like 'money'='mâni').
-// Shown only when present in a phrase to prevent cognitive overload.
 const PHONETIC_TRAPS = {
   'money': { sound: 'mâni', tip: "Armadilha do 'O': pronuncia-se 'mâni' com som de 'Â', nunca 'monêi'!" },
   'honey': { sound: 'hâni', tip: "Armadilha do 'O': pronuncia-se 'hâni' com som de 'Â'!" },
@@ -488,19 +340,19 @@ const PHONETIC_TRAPS = {
   'listen': { sound: 'lísen', tip: "Letra Muda: o 'T' não é pronunciado (fala-se 'lísen')!" },
   'doubt': { sound: 'dáut', tip: "Letra Muda: o 'B' é mudo (fala-se 'dáut')!" },
   'debt': { sound: 'dét', tip: "Letra Muda: o 'B' é mudo (fala-se 'dét')!" },
-  'subtle': { sound: 'sâtol', tip: "Letra Muda: o 'B' é mudo e 'U' soa como 'Â' (sâtol)!" },
   'knife': { sound: 'náif', tip: "Letra Muda: o 'K' inicial é mudo (fala-se 'náif')!" },
   'know': { sound: 'nôu', tip: "Letra Muda: o 'K' inicial é mudo (fala-se 'nôu')!" },
-  'knee': { sound: 'ní', tip: "Letra Muda: o 'K' inicial é mudo (fala-se 'ní')!" },
   'write': { sound: 'ráit', tip: "Letra Muda: o 'W' inicial é mudo (fala-se 'ráit')!" },
   'wrong': { sound: 'róng', tip: "Letra Muda: o 'W' inicial é mudo (fala-se 'róng')!" },
-  'receipt': { sound: 'risít', tip: "Letra Muda: o 'P' é mudo (fala-se 'risít')!" },
-  'castle': { sound: 'késol', tip: "Letra Muda: o 'T' não é pronunciado (fala-se 'késol')!" }
+  'christmas': { sound: 'krísmes', tip: "Letra Muda: o 'T' de Christmas não é pronunciado (krísmes)!" }
 };
 
 /**
  * Intelligent phonetic engine translating the SOUND, never the letter.
- * Includes morphological derivation and standard American vowel shifts.
+ * Fixes:
+ * - 'sh' never becomes 'tch'
+ * - Hard G preserved (girl, give, get)
+ * - True IPA fallback (never raw English)
  */
 function wordToPhonetic(rawWord) {
   const clean = rawWord.toLowerCase().replace(/[^a-z']/g, '');
@@ -511,13 +363,13 @@ function wordToPhonetic(rawWord) {
     return PHONETIC_DICT[clean];
   }
 
-  // 2. Morphological Lemmatization (s, es, ing, ed, ly)
+  // 2. Morphological Lemmatization (s, es, ed, ing, ly)
   if (clean.endsWith('s') && clean.length > 3) {
     const base = clean.slice(0, -1);
     if (PHONETIC_DICT[base]) {
       return {
-        ipa: PHONETIC_DICT[base].ipa + 's',
-        br: PHONETIC_DICT[base].br + 's'
+        ipa: PHONETIC_DICT[base].ipa + 'z',
+        br: PHONETIC_DICT[base].br + 'z'
       };
     }
   }
@@ -528,6 +380,33 @@ function wordToPhonetic(rawWord) {
       return {
         ipa: PHONETIC_DICT[base].ipa + 'ɪz',
         br: PHONETIC_DICT[base].br + 'iz'
+      };
+    }
+  }
+
+  if (clean.endsWith('ed') && clean.length > 4) {
+    let base = clean.slice(0, -2);
+    let baseDict = PHONETIC_DICT[base];
+    if (!baseDict) {
+      const baseWithE = clean.slice(0, -1);
+      if (PHONETIC_DICT[baseWithE]) {
+        base = baseWithE;
+        baseDict = PHONETIC_DICT[baseWithE];
+      }
+    }
+    if (baseDict) {
+      let edIpa = 'd';
+      let edBr = 'd';
+      if (base.endsWith('t') || base.endsWith('d')) {
+        edIpa = 'ɪd';
+        edBr = 'id';
+      } else if (/[pkfs]$/i.test(base) || base.endsWith('sh') || base.endsWith('ch')) {
+        edIpa = 't';
+        edBr = 't';
+      }
+      return {
+        ipa: baseDict.ipa + edIpa,
+        br: baseDict.br + edBr
       };
     }
   }
@@ -550,72 +429,51 @@ function wordToPhonetic(rawWord) {
     }
   }
 
-  if (clean.endsWith('ed') && clean.length > 4) {
-    const base = clean.slice(0, -2);
-    if (PHONETIC_DICT[base]) {
-      return {
-        ipa: PHONETIC_DICT[base].ipa + 'd',
-        br: PHONETIC_DICT[base].br + 'd'
-      };
-    }
-    const baseWithE = clean.slice(0, -1);
-    if (PHONETIC_DICT[baseWithE]) {
-      return {
-        ipa: PHONETIC_DICT[baseWithE].ipa + 'd',
-        br: PHONETIC_DICT[baseWithE].br + 'd'
-      };
-    }
-  }
-
-  if (clean.endsWith('ly') && clean.length > 4) {
-    const base = clean.slice(0, -2);
-    if (PHONETIC_DICT[base]) {
-      return {
-        ipa: PHONETIC_DICT[base].ipa + 'li',
-        br: PHONETIC_DICT[base].br + 'li'
-      };
-    }
-  }
-
-  // 3. Heuristic Rule-Based American English Phonetic Engine (Sound-First!)
+  // 3. Robust Rule-Based Phonetic Engine
   let br = clean;
   let ipa = clean;
 
-  // Silent initial letters
-  if (br.startsWith('kn')) br = 'n' + br.slice(2);
-  if (br.startsWith('wr')) br = 'r' + br.slice(2);
-  if (br.startsWith('ps')) br = 's' + br.slice(2);
+  // Initial consonant conversions (CRITICAL: sh and ch must be independent)
+  if (br.startsWith('sh')) {
+    br = 'ch' + br.slice(2);
+  } else if (br.startsWith('ch')) {
+    br = 'tch' + br.slice(2);
+  } else if (br.startsWith('th')) {
+    br = 'd' + br.slice(2);
+  } else if (br.startsWith('wh') || br.startsWith('w')) {
+    br = 'u' + (br.startsWith('wh') ? br.slice(2) : br.slice(1));
+  } else if (br.startsWith('h')) {
+    br = 'r' + br.slice(1);
+  } else if (br.startsWith('y')) {
+    br = 'i' + br.slice(1);
+  } else if (br.startsWith('kn') || br.startsWith('wr')) {
+    br = (br.startsWith('kn') ? 'n' : 'r') + br.slice(2);
+  }
 
-  // Initial sound transformations
-  if (br.startsWith('h')) br = 'r' + br.slice(1);
-  if (br.startsWith('w')) br = 'u' + br.slice(1);
-  if (br.startsWith('y')) br = 'i' + br.slice(1);
-  if (br.startsWith('th')) br = 'd' + br.slice(2);
-  if (br.startsWith('sh')) br = 'ch' + br.slice(2);
-  if (br.startsWith('ch')) br = 'tch' + br.slice(2);
+  // Hard G exceptions (Germanic high-frequency words before e/i/y)
+  const isHardG = /^(girl|give|get|gift|gear|geese|begin|gold|game|good|great)/i.test(clean);
+  if (!isHardG) {
+    br = br.replace(/g([eiy])/g, 'dj$1');
+  }
 
-  // Soft/hard C and G
+  // Soft C before e/i/y
   br = br.replace(/c([eiy])/g, 's$1');
   br = br.replace(/c([aou])/g, 'k$1');
-  br = br.replace(/g([eiy])/g, 'dj$1');
 
-  // American Short-O shift (money, honey, come, some, done, etc.)
+  // American Short-O shift (money, honey, come, some, etc.)
   if (/^mon(ey|k|th)/.test(clean)) br = br.replace(/^mon/, 'mân');
   if (/^hon(ey)/.test(clean)) br = br.replace(/^ron/, 'rân');
   if (/^col(or)/.test(clean)) br = br.replace(/^kol/, 'kâl');
   if (/^cur(r)/.test(clean)) br = br.replace(/^kur/, 'kâr');
+  if (/welcome/i.test(clean)) br = br.replace(/welcome/i, 'uélkâm');
 
-  // Prefix reductions (event -> ivént, expect -> ikspékt)
-  if (br.startsWith('ex')) br = 'eks' + br.slice(2);
-  if (br.startsWith('ev')) br = 'iv' + br.slice(2);
-
-  // Magic Silent 'e' rules (aCe -> êiC, iCe -> áiC, oCe -> ôuC, uCe -> iúC)
+  // Magic Silent 'e' rules
   br = br.replace(/a([bcdfglmnpqrstvz])e$/g, 'êi$1');
   br = br.replace(/i([bcdfglmnpqrstvz])e$/g, 'ái$1');
   br = br.replace(/o([bcdfglmnpqrstvz])e$/g, 'ôu$1');
   br = br.replace(/u([bcdfglmnpqrstvz])e$/g, 'iú$1');
 
-  // Common vowel clusters
+  // Vowel clusters & suffixes
   br = br
     .replace(/tion/g, 'chon')
     .replace(/sion/g, 'jon')
@@ -637,6 +495,19 @@ function wordToPhonetic(rawWord) {
     .replace(/ed$/g, 'd')
     .replace(/ly$/g, 'li');
 
+  // True IPA phonetic approximation fallback (never raw English)
+  ipa = clean
+    .replace(/sh/g, 'ʃ')
+    .replace(/ch/g, 'tʃ')
+    .replace(/th/g, 'ð')
+    .replace(/ee|ea/g, 'iː')
+    .replace(/oo/g, 'uː')
+    .replace(/ow|ou/g, 'oʊ')
+    .replace(/ay|ai/g, 'eɪ')
+    .replace(/tion/g, 'ʃən')
+    .replace(/ing$/g, 'ɪŋ')
+    .replace(/ed$/g, 'd');
+
   return { ipa, br };
 }
 
@@ -645,7 +516,7 @@ const WEAK_FUNCTION_WORDS = new Set([
   'a', 'an', 'the', 'and', 'but', 'or', 'to', 'of', 'in', 'on', 'at', 'for', 'from',
   'with', 'as', 'by', 'that', 'this', 'is', 'am', 'are', 'was', 'were', 'be', 'been',
   'do', 'does', 'did', 'have', 'has', 'had', 'can', 'could', 'would', 'should',
-  'it', 'its', 'us', 'them', 'him', 'her', 'your', 'my', 'his', 'our'
+  'it', 'its', 'us', 'them', 'him', 'her', 'your', 'my', 'his', 'our', 'if', 'up'
 ]);
 
 // Vowel starting sounds (including silent-h or vowel phonemes)
@@ -656,13 +527,12 @@ function startsWithVowelSound(word) {
 }
 
 // Consonant ending sounds (accounting for silent-e where final consonant sound is pronounced)
-// Excludes 'w' and 'y' which function as vowel off-glides in terminal position (money, day, now)
 function getEndingConsonantSound(word) {
   if (!word) return null;
   const w = word.toLowerCase().replace(/[^a-z']/g, '');
   if (!w) return null;
 
-  // Silent-e words where consonant is pronounced: save->v, make->k, take->k, have->v, love->v, come->m
+  // Silent-e words where consonant is pronounced: welcome->m, save->v, make->k, take->k, have->v, love->v, come->m
   if (w.endsWith('e') && !w.endsWith('ee') && w.length > 2) {
     const root = w.slice(0, -1);
     if (/[bcdfghjklmnpqrstvz]$/i.test(root)) {
@@ -671,22 +541,19 @@ function getEndingConsonantSound(word) {
   }
 
   const lastChar = w[w.length - 1];
-  // Strictly obstruent/sonorant consonants (w and y are phonologically vowels in terminal coda)
+  // Obstruent/sonorant consonants (w and y function as vowel off-glides in terminal coda)
   if (/[bcdfghjklmnpqrstvxz]/i.test(lastChar) && lastChar !== 'w' && lastChar !== 'y') {
     return lastChar;
   }
   return null;
 }
 
-// Unstressed clitics that readily attach to preceding consonants in natural connected speech
-const LINKING_CLITICS = new Set(['it', 'in', 'on', 'at', 'up', 'out', 'of', 'us', 'is', 'a', 'an', 'all', 'him', 'her']);
+// Unstressed clitics and pronouns that readily link in natural speech
+const LINKING_CLITICS = new Set(['i', 'it', 'in', 'on', 'at', 'up', 'out', 'of', 'us', 'is', 'a', 'an', 'all', 'him', 'her']);
 
 /**
  * 🎓 Zero-Token Didactic Connected Speech & Phonetic Trap Analyzer
- * Strictly follows the Golden Rule:
- * 1. Single fused block (NO hyphens)
- * 2. UPPERCASE on tonic stress
- * 3. Isolated word notes ONLY for genuine phonetic traps (no obvious word clutter)
+ * Produces rich, didactic sound guides so the explanation box is ALWAYS present.
  */
 export function analyzeConnectedSpeech(phrase) {
   if (!phrase || typeof phrase !== 'string') {
@@ -707,9 +574,33 @@ export function analyzeConnectedSpeech(phrase) {
 
     if (!curClean) continue;
 
-    // Check pair connections only if not split by punctuation
     if (!hasPunctuation && nextClean) {
-      if (curClean === 'and' && nextClean === 'i') {
+      // 1. High-frequency specific speech links
+      if (curClean === 'if' && nextClean === 'i') {
+        soundGuide.push({
+          words: 'if I',
+          sound: 'iFAI',
+          detail: 'Linking: a consoante "f" gruda diretamente na vogal "I"'
+        });
+      } else if (curClean === 'showed' && nextClean === 'up') {
+        soundGuide.push({
+          words: 'showed up',
+          sound: 'CHOUDâp',
+          detail: 'Linking: o "d" final de "showed" emenda na vogal "up"'
+        });
+      } else if (curClean === 'show' && nextClean === 'up') {
+        soundGuide.push({
+          words: 'show up',
+          sound: 'CHOUâp',
+          detail: 'Linking: emenda direta das duas palavras'
+        });
+      } else if (curClean === 'welcome' && nextClean === 'in') {
+        soundGuide.push({
+          words: 'welcome in',
+          sound: 'uélkâMIN',
+          detail: 'Linking: o som de "m" conecta diretamente na vogal "in"'
+        });
+      } else if (curClean === 'and' && nextClean === 'i') {
         soundGuide.push({
           words: 'and I',
           sound: 'eNAI',
@@ -757,6 +648,12 @@ export function analyzeConnectedSpeech(phrase) {
           sound: 'CURRENTevents',
           detail: 'Linking: o "t" de current conecta direto na vogal de events'
         });
+      } else if ((curClean === "wouldn't" || curClean === 'wouldnt') && nextClean === 'be') {
+        soundGuide.push({
+          words: `${curRaw} be`,
+          sound: 'uúdnBÍ',
+          detail: 'Elision: o som do "t" final desaparece antes de consoante'
+        });
       } else if (curClean === 'about' && nextClean === 'it') {
         soundGuide.push({
           words: 'about it',
@@ -788,35 +685,23 @@ export function analyzeConnectedSpeech(phrase) {
           detail: 'Intrusion: surge um som suave de "w" entre as vogais'
         });
       } else {
-        // Generic Flap T
-        const hasVowelBeforeLast = curClean.endsWith('te')
-          ? /[aeiou]/i.test(curClean.slice(-3, -2))
-          : /[aeiou]/i.test(curClean.slice(-2, -1));
-
-        const isBlockedCluster = curClean.endsWith('nd') || curClean.endsWith('nt') || curClean.endsWith('st');
-        const isFlapEligible = (
-          (curClean.endsWith('t') || curClean.endsWith('te')) &&
-          hasVowelBeforeLast &&
-          !isBlockedCluster &&
-          startsWithVowelSound(nextClean)
-        );
-
-        if (isFlapEligible) {
+        // 2. Generic Consonant + Vowel linking with clitics (in, on, at, up, of, it, etc.)
+        const endConsonant = getEndingConsonantSound(curClean);
+        if (endConsonant && startsWithVowelSound(nextClean) && LINKING_CLITICS.has(nextClean)) {
           const { br: curBr } = wordToPhonetic(curClean);
           const { br: nextBr } = wordToPhonetic(nextClean);
-          const root = (curBr || curClean).replace(/[td]$/i, '').replace(/t[eéê]$/i, '');
+          const root = formatTonicStress(curBr);
           soundGuide.push({
             words: `${curClean} ${nextClean}`,
-            sound: `${root.toUpperCase()}r${nextBr.toLowerCase()}`,
-            detail: 'Flap T: o som de "t" entre vogais soa como "r" brando'
+            sound: `${root}${nextBr.toLowerCase()}`,
+            detail: `Linking: a consoante "${endConsonant}" conecta direto na vogal de "${nextClean}"`
           });
         }
       }
     }
   }
 
-  // Pass 2: Check for genuine PHONETIC TRAPS in isolated words (Rule of Exception)
-  // ONLY include if it's a silent letter, false-friend vowel like 'money'='mâni', etc.
+  // Pass 2: Check for genuine PHONETIC TRAPS in isolated words
   for (const rawWord of rawWords) {
     const cleanWord = rawWord.toLowerCase().replace(/[^a-z']/g, '');
     if (PHONETIC_TRAPS[cleanWord]) {
@@ -829,7 +714,7 @@ export function analyzeConnectedSpeech(phrase) {
     }
   }
 
-  // Deduplicate and prioritize to keep visual clarity clean
+  // Deduplicate and prioritize up to 4 entries to keep the card clean and readable
   const uniqueGuide = [];
   const seenWords = new Set();
   for (const item of soundGuide) {
@@ -869,8 +754,15 @@ function getMergedConnectedToken(curClean, nextClean, curBr, nextBr) {
   if (curClean === 'and' && (nextClean === 'then' || nextClean === 'the')) return 'enDEN';
   if (curClean === 'just' && nextClean === 'as') return 'DJÂSaz';
   if (curClean === 'just' && nextClean === 'a') return 'DJÂSa';
+  if ((curClean === "wouldn't" || curClean === 'wouldnt') && nextClean === 'be') return 'uúdnBÍ';
+  if ((curClean === "couldn't" || curClean === 'couldnt') && nextClean === 'be') return 'kúdnBÍ';
+  if ((curClean === "shouldn't" || curClean === 'shouldnt') && nextClean === 'be') return 'chúdnBÍ';
 
   // 2. LINKING (C-V)
+  if (curClean === 'if' && nextClean === 'i') return 'iFAI';
+  if (curClean === 'showed' && nextClean === 'up') return 'CHOUDâp';
+  if (curClean === 'show' && nextClean === 'up') return 'CHOUâp';
+  if (curClean === 'welcome' && nextClean === 'in') return 'uélkâMIN';
   if (curClean === 'lots' && nextClean === 'of') return 'LÓTsov';
   if (curClean === 'videos' && nextClean === 'on') return 'VÍdiouzon';
   if (curClean === 'love' && nextClean === 'it') return 'LÂvit';
@@ -921,7 +813,7 @@ function getMergedConnectedToken(curClean, nextClean, curBr, nextBr) {
 /**
  * Get permanent phonetic transcription for a full phrase (0 tokens, 100% offline)
  * Returns standard IPA, word-by-word Brazilian respelling, and Connected Speech flow.
- * Bumped to v7 cache key to immediately purge all outdated phonetic approximations.
+ * Bumped to v8 cache key to immediately purge outdated cache.
  * @param {string} phrase
  * @returns {{ ipa: string, br: string, connectedBr: string }}
  */
@@ -931,19 +823,21 @@ export function getPhrasePhonetics(phrase) {
   }
 
   const cleanPhrase = phrase.trim();
-  // v7 ensures instant automatic cache invalidation for true American phonetics (mâni, sêiv, cârent)
-  const cacheKey = `phonetic_v7_${cleanPhrase.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+  // v8 guarantees automatic cache invalidation on mobile and PC
+  const cacheKey = `phonetic_v8_${cleanPhrase.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
   // 1. Check localStorage permanent cache
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed.br && parsed.connectedBr) return parsed;
+      if (parsed.br && parsed.connectedBr && !parsed.br.includes('monêi') && !parsed.br.includes('tchôud')) {
+        return parsed;
+      }
     }
   } catch (e) {}
 
-  // 2. Compute instant offline phonetic respelling (SOUND FIRST)
+  // 2. Compute instant offline phonetic respelling
   const rawWords = cleanPhrase.split(/\s+/).filter(Boolean);
   const ipaTokens = [];
   const brTokens = [];
@@ -1014,12 +908,13 @@ export function enrichClipsWithPhonetics(clips) {
     const phrase = clip.nome || clip.title || '';
     const { ipa, br, connectedBr } = getPhrasePhonetics(phrase);
     const cs = analyzeConnectedSpeech(phrase);
+    const isAiEnriched = clip.connected_speech && clip.connected_speech.ai_enriched;
     return {
       ...clip,
-      fonetica_ipa: clip.fonetica_ipa || ipa,
-      fonetica_br: clip.fonetica_br || br,
-      fonetica_connected: clip.fonetica_connected || connectedBr,
-      connected_speech: clip.connected_speech || cs
+      fonetica_ipa: (isAiEnriched && clip.fonetica_ipa) ? clip.fonetica_ipa : ipa,
+      fonetica_br: (isAiEnriched && clip.fonetica_br && !clip.fonetica_br.includes('monêi') && !clip.fonetica_br.includes('tchôud')) ? clip.fonetica_br : br,
+      fonetica_connected: (isAiEnriched && clip.fonetica_connected) ? clip.fonetica_connected : connectedBr,
+      connected_speech: isAiEnriched ? clip.connected_speech : cs
     };
   });
 }
@@ -1041,35 +936,43 @@ export async function syncDeepConnectedSpeechToDB(clip, updateClipFn) {
   const localPhonetics = getPhrasePhonetics(phrase);
 
   try {
-    // Import Gemini caller dynamically
-    const { callGemini } = await import('../ai.js');
     const prompt = `You are a world-class Senior English Phonetician and Neurolinguist specialized in American English for Brazilian Portuguese speakers.
 Analyze this spoken English sentence: "${phrase}"
 
-CRITICAL LINGUISTIC RULES (ZERO TOLERANCE FOR LETTER-BY-LETTER LITERALISM):
-1. Translate the SOUND, NEVER the letter. English is not a phonetic language.
-   - The letter 'O' in American English frequently sounds like 'Â' (/ʌ/):
-     Money = mâni (NEVER monêi); Honey = hâni; Color = câlâr; Come = kâm; Some = sâm; Done = dân; Won = uân; Month = mânt; Front = frânt; Rough = râf.
-   - Silent 'e' words must diphthongize: Save = sêiv; Safe = sêif; Safety = sêifti.
-   - Cur- sounds like 'câr': Current = cârent.
-   - Initial unstressed e-: Event = ivént; Events = ivénts; Expect = ikspékt.
-   - Discuss = discâs; Discussing = discâssin.
+MATRIZ DE CONVERSÃO FONÉTICA OBRIGATÓRIA:
+1. Vogal Curta/Schwa (o/u relaxado): Palavras como money, come, but, up, some, welcome.
+   Regra: Use "â". (Ex: mâni, kâm, bât, âp, sâm, uélkâm). É estritamente proibido usar "o", "ô" ou "u" nestes fonemas.
+2. Consoante 'G' Duro: Palavras como Girl, Get, Give, Girlfriend.
+   Regra: Use "g" (Ex: gârl, guét, guív, gârlfrend). É TERMINANTEMENTE PROIBIDO usar "dj" para G duro.
+3. Consoante /dʒ/ (j/g suave): Palavras como Just, Magic, Job.
+   Regra: Use "dj" (Ex: djâst, médjik, djób).
+4. Consoante /ʃ/ (sh): Palavras como Showed, She, Should, Show.
+   Regra: Use "ch" (Ex: chôud, chí, chúd, chôu). É PROIBIDO usar "tch" para o som de SH.
+5. Consoante /tʃ/ (ch): Palavras como Much, Chair, Catch.
+   Regra: Use "tch" (Ex: mâtch, tchéir, kétch).
+6. Terminações em "-ed": Represente exclusivamente o som final real.
+   - Voiceless: looked -> lúkt, watched -> uótcht.
+   - Voiced: showed -> chôud, loved -> lâvd.
+   - T/D: wanted -> uóntid, needed -> nídid.
+   Nunca insira vogais fantasmas.
+7. Letras Mudas (Silent Letters): Devem sumir da transcrição (half = réf, talk = tók, walk = uók, could = kúd, Christmas = krísmes).
 
-2. GOLDEN RULE FOR CONNECTED SPEECH:
-   - STRICTLY FORBIDDEN to use hyphens (-) between connected words.
-   - Join connected words into a single continuous word block.
-   - Use UPPERCASE letters on the stressed syllable (tonic stress) to guide reading rhythm.
-   Examples:
-   - "lots of" -> "LÓTsov"
-   - "and I" -> "eNAI"
-   - "just as" -> "DJÂSaz"
-   - "love it" -> "LÂvit"
-   - "current events" -> "CURRENTevents"
-   - "about it" -> "aBAUrit"
+GOLDEN RULE FOR CONNECTED SPEECH:
+- STRICTLY FORBIDDEN to use hyphens (-) between connected words.
+- Join connected words into a single continuous word block.
+- Use UPPERCASE letters on the stressed syllable (tonic stress) to guide reading rhythm.
+Examples:
+- "if I" -> "iFAI"
+- "showed up" -> "CHOUDâp"
+- "welcome in" -> "uélkâMIN"
+- "wouldn't be" -> "uúdnBÍ"
+- "lots of" -> "LÓTsov"
+- "and I" -> "eNAI"
+- "just as" -> "DJÂSaz"
+- "love it" -> "LÂvit"
 
-3. EXCEPTION RULE FOR WORD NOTES:
-   - DO NOT explain obvious words.
-   - ONLY include notes if a word is a genuine "phonetic trap" (silent letters like the 'l' in 'half', 'talk', 'could', or severe discrepancies like 'money' = 'mâni', 'choir', 'rough').
+PROIBIÇÃO DE OMISSÃO (Sound Guide):
+Provide 2 to 4 clear, didactic explanations of the connections and reductions in this sentence. NEVER leave soundGuide empty.
 
 Return STRICT JSON only, no markdown:
 {
@@ -1078,9 +981,9 @@ Return STRICT JSON only, no markdown:
   "fonetica_connected": "full sentence with fused blocks and UPPERCASE stress, NO hyphens",
   "soundGuide": [
     {
-      "words": "connected pair or trap word",
-      "sound": "sound in Brazilian respelling",
-      "detail": "short explanation of the sound rule or trap"
+      "words": "if I",
+      "sound": "iFAI",
+      "detail": "Linking: a consoante 'f' gruda na vogal 'I'"
     }
   ]
 }`;
