@@ -672,12 +672,15 @@ function updateConnectedSpeechUI(clip) {
     clip.fonetica_br.includes('tchôud') ||
     clip.fonetica_br.includes('djirlfriend') ||
     clip.fonetica_br.includes('uelkôum') ||
-    clip.fonetica_br.includes('monêi')
+    clip.fonetica_br.includes('monêi') ||
+    clip.fonetica_br.includes('mêida')
   )) || (clip.fonetica_connected && (
     clip.fonetica_connected.includes('TCHÔUD') ||
     clip.fonetica_connected.includes('DJIRLFRIEND') ||
     clip.fonetica_connected.includes('UELKÔUM') ||
-    clip.fonetica_connected.includes('MONÊI')
+    clip.fonetica_connected.includes('MONÊI') ||
+    clip.fonetica_connected.includes('MÊIDa') ||
+    clip.fonetica_connected.includes('MÊIDA')
   ));
 
   const hasValidGuide = clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide) && clip.connected_speech.soundGuide.length > 0;

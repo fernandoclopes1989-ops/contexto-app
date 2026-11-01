@@ -319,7 +319,34 @@ const PHONETIC_DICT = {
   'netflix': { ipa: 'ˈnɛtflɪks', br: 'nétfliks' },
   'holiday': { ipa: 'ˈhɑːlɪdeɪ', br: 'rólidêi' },
   'holidays': { ipa: 'ˈhɑːlɪdeɪz', br: 'rólidêiz' },
-  'happy': { ipa: 'ˈhæpi', br: 'répi' }
+  'happy': { ipa: 'ˈhæpi', br: 'répi' },
+  'made': { ipa: 'meɪd', br: 'mêid' },
+  'eyes': { ipa: 'aɪz', br: 'áiz' },
+  'eye': { ipa: 'aɪ', br: 'ái' },
+  'coal': { ipa: 'koʊl', br: 'kôul' },
+  'man': { ipa: 'mæn', br: 'mên' },
+  'men': { ipa: 'mɛn', br: 'mén' },
+  'ready': { ipa: 'ˈrɛdi', br: 'réri' },
+  'better': { ipa: 'ˈbɛtər', br: 'bérer' },
+  'butter': { ipa: 'ˈbʌtər', br: 'bârer' },
+  'letter': { ipa: 'ˈlɛtər', br: 'lérer' },
+  'bottle': { ipa: 'ˈbɑːtəl', br: 'bórol' },
+  'little': { ipa: 'ˈlɪtəl', br: 'lírol' },
+  'middle': { ipa: 'ˈmɪdəl', br: 'mírol' },
+  'body': { ipa: 'ˈbɑːdi', br: 'bóri' },
+  'model': { ipa: 'ˈmɑːdəl', br: 'mórel' },
+  'lady': { ipa: 'ˈleɪdi', br: 'lêiri' },
+  'party': { ipa: 'ˈpɑːrti', br: 'pári' },
+  'twenty': { ipa: 'ˈtwɛnti', br: 'tuéni' },
+  'thirty': { ipa: 'ˈθɜːrti', br: 'têrti' },
+  'forty': { ipa: 'ˈfɔːrti', br: 'fóri' },
+  'mountain': { ipa: 'ˈmaʊntən', br: "máun'n" },
+  'button': { ipa: 'ˈbʌtən', br: "bâ'n" },
+  'cotton': { ipa: 'ˈkɑːtən', br: "kó'n" },
+  'curtain': { ipa: 'ˈkɜːrtən', br: "kêr'n" },
+  'written': { ipa: 'ˈrɪtən', br: "rí'n" },
+  'important': { ipa: 'ɪmˈpɔːrtənt', br: "impór'nt" },
+  'exactly': { ipa: 'ɪɡˈzæktli', br: "igzák'li" }
 };
 
 // 2. Phonetic Traps: Words where pronunciation diverges heavily from English spelling.
@@ -349,7 +376,11 @@ const PHONETIC_TRAPS = {
   'girl': { sound: 'gârl', tip: "Consoante 'G' Duro: pronuncia-se 'gârl' com 'g' duro como em 'gato', NUNCA 'dj'!" },
   'welcome': { sound: 'uélkâm', tip: "Vogal Reduzida (Schwa): o final é 'kâm' com som fechado ('uélkâm'), nunca 'kôum'!" },
   'showed': { sound: 'chôud', tip: "Som de 'SH': pronuncia-se 'chôud' com som suave de 'CH' ou 'X' brasileiro, NUNCA 'tchôud'!" },
-  'she': { sound: 'chí', tip: "Som de 'SH': pronuncia-se 'chí' suave como 'chá', nunca 'tchi'!" }
+  'she': { sound: 'chí', tip: "Som de 'SH': pronuncia-se 'chí' suave como 'chá', nunca 'tchi'!" },
+  'eyes': { sound: 'áiz', tip: "Pronúncia Real: pronuncia-se 'áiz', nunca leia as letras como 'êies'!" },
+  'made': { sound: 'mêid', tip: "No Connected Speech com vogal seguinte (ex: 'made a'), vira obrigatoriamente 'MÊIra' via Flap D! NUNCA diga 'mêida'!" },
+  'mountain': { sound: "máun'n", tip: "Corte Glotal (Glottal Stop): o 't' antes de 'n' é preso na garganta (fala-se 'máun'n')!" },
+  'button': { sound: "bâ'n", tip: "Corte Glotal (Glottal Stop): o 't' antes de 'n' é preso na garganta (fala-se 'bâ'n')!" }
 };
 
 /**
@@ -554,7 +585,21 @@ function getEndingConsonantSound(word) {
 }
 
 // Unstressed clitics and pronouns that readily link in natural speech
-const LINKING_CLITICS = new Set(['i', 'it', 'in', 'on', 'at', 'up', 'out', 'of', 'us', 'is', 'a', 'an', 'all', 'him', 'her']);
+const LINKING_CLITICS = new Set(['i', 'it', 'in', 'on', 'at', 'up', 'out', 'of', 'us', 'is', 'a', 'an', 'all', 'him', 'her', 'and']);
+
+/**
+ * Strip non-verbal subtitle sound effects, musical notes, and noise cues
+ * e.g. "(tambourine rattling) ♪ I made a man ♪" -> "I made a man"
+ */
+export function sanitizeSubtitleText(phrase) {
+  if (!phrase || typeof phrase !== 'string') return '';
+  return phrase
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/[♪♫♬♩#]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 /**
  * 🎓 Zero-Token Didactic Connected Speech & Phonetic Trap Analyzer
@@ -565,10 +610,11 @@ export function analyzeConnectedSpeech(phrase) {
     return { linkedHtml: '', soundGuide: [], hasConnections: false };
   }
 
-  const rawWords = phrase.trim().split(/\s+/).filter(Boolean);
+  const clean = sanitizeSubtitleText(phrase) || phrase.trim();
+  const rawWords = clean.split(/\s+/).filter(Boolean);
   const soundGuide = [];
 
-  // Pass 1: Find Connected Speech Pairs (Linking, Elision, Flap T, Assimilation, Intrusion)
+  // Pass 1: Find Connected Speech Pairs across the 6 American English phenomena
   for (let i = 0; i < rawWords.length; i++) {
     const curRaw = rawWords[i];
     const curClean = curRaw.toLowerCase().replace(/[^a-z']/g, '');
@@ -580,142 +626,110 @@ export function analyzeConnectedSpeech(phrase) {
     if (!curClean) continue;
 
     if (!hasPunctuation && nextClean) {
-      // 1. High-frequency specific speech links
-      if (curClean === 'if' && nextClean === 'i') {
-        soundGuide.push({
-          words: 'if I',
-          sound: 'iFAI',
-          detail: 'Linking: a consoante "f" gruda diretamente na vogal "I"'
-        });
-      } else if (curClean === 'showed' && nextClean === 'up') {
-        soundGuide.push({
-          words: 'showed up',
-          sound: 'CHOUDâp',
-          detail: 'Linking: o "d" final de "showed" emenda na vogal "up"'
-        });
-      } else if (curClean === 'show' && nextClean === 'up') {
-        soundGuide.push({
-          words: 'show up',
-          sound: 'CHOUâp',
-          detail: 'Linking: emenda direta das duas palavras'
-        });
-      } else if (curClean === 'welcome' && nextClean === 'in') {
-        soundGuide.push({
-          words: 'welcome in',
-          sound: 'uélkâMIN',
-          detail: 'Linking: o som de "m" conecta diretamente na vogal "in"'
-        });
-      } else if (curClean === 'and' && nextClean === 'i') {
+      const endConsonant = getEndingConsonantSound(curClean);
+      const isBlockedCluster = curClean.endsWith('nd') || curClean.endsWith('nt') || curClean.endsWith('st') || curClean.endsWith('ld') || curClean.endsWith('lt');
+      const { br: curBr } = wordToPhonetic(curClean);
+      const { br: nextBr } = wordToPhonetic(nextClean);
+
+      // --- 2. ELISION (Omissão de Sons & H-Dropping) ---
+      if (curClean === 'and' && nextClean === 'i') {
         soundGuide.push({
           words: 'and I',
           sound: 'eNAI',
-          detail: 'Elision: o "d" desaparece e a vogal se funde direto'
+          detail: '2. Elision (Omissão): o som de "d" desaparece e emenda direto na vogal'
+        });
+      } else if (curClean === 'and' && nextClean === 'a') {
+        soundGuide.push({
+          words: 'and a',
+          sound: 'eNA',
+          detail: '2. Elision (Omissão): o som de "d" desaparece para acelerar a fala'
         });
       } else if (curClean === 'just' && nextClean === 'as') {
         soundGuide.push({
           words: 'just as',
           sound: 'DJÂSaz',
-          detail: 'Elision: o "t" é omitido e emenda no "as"'
-        });
-      } else if (curClean === 'love' && nextClean === 'it') {
-        soundGuide.push({
-          words: 'love it',
-          sound: 'LÂvit',
-          detail: 'Linking: o som de "v" gruda direto no "it"'
-        });
-      } else if (curClean === 'did' && nextClean === 'on') {
-        soundGuide.push({
-          words: 'did on',
-          sound: 'DIdon',
-          detail: 'Linking: o som de "d" gruda na vogal "on"'
-        });
-      } else if (curClean === 'much' && nextClean === 'as') {
-        soundGuide.push({
-          words: 'much as',
-          sound: 'MÂTCHaz',
-          detail: 'Linking: o som de "ch" gruda na vogal "as"'
-        });
-      } else if (curClean === 'lots' && nextClean === 'of') {
-        soundGuide.push({
-          words: 'lots of',
-          sound: 'LÓTsov',
-          detail: 'Linking: o "s" final se junta ao "of"'
-        });
-      } else if (curClean === 'videos' && nextClean === 'on') {
-        soundGuide.push({
-          words: 'videos on',
-          sound: 'VÍdiouzon',
-          detail: 'Linking: o "s" final ganha som de "z" e gruda no "on"'
-        });
-      } else if (curClean === 'current' && (nextClean === 'events' || nextClean === 'event')) {
-        soundGuide.push({
-          words: `${curClean} ${nextClean}`,
-          sound: 'CURRENTevents',
-          detail: 'Linking: o "t" de current conecta direto na vogal de events'
+          detail: '2. Elision (Omissão): o "t" final é cancelado antes de "as"'
         });
       } else if ((curClean === "wouldn't" || curClean === 'wouldnt') && nextClean === 'be') {
         soundGuide.push({
           words: `${curRaw} be`,
           sound: 'uúdnBÍ',
-          detail: 'Elision: o som do "t" final desaparece antes de consoante'
+          detail: '2. Elision (Omissão): o "t" final desaparece antes de consoante'
         });
-      } else if (curClean === 'about' && nextClean === 'it') {
+      } else if (endConsonant && (nextClean === 'him' || nextClean === 'her' || nextClean === 'his')) {
+        const hDrop = nextClean === 'him' ? `${formatTonicStress(curBr)}im` : (nextClean === 'her' ? `${formatTonicStress(curBr)}âr` : `${formatTonicStress(curBr)}iz`);
         soundGuide.push({
-          words: 'about it',
-          sound: 'aBAUrit',
-          detail: 'Flap T: o "t" entre vogais soa como "r" brando'
+          words: `${curClean} ${nextClean}`,
+          sound: hDrop,
+          detail: `2. Elision (Omissão de H): o som de "h" em "${nextClean}" desaparece na fala rápida, soando "${hDrop}"`
         });
-      } else if (curClean === 'it' && nextClean === 'all') {
+      }
+      // --- 3. ASSIMILATION (Fusão T/D + Y) ---
+      else if ((curClean.endsWith('t') || curClean.endsWith('d') || curClean.endsWith('te') || curClean.endsWith('de')) && nextClean === 'you') {
+        const isT = curClean.endsWith('t') || curClean.endsWith('te');
+        const root = curBr.replace(/[td]$/i, '');
+        const assimSound = isT ? `${formatTonicStress(root)}tchu` : `${formatTonicStress(root)}dju`;
         soundGuide.push({
-          words: 'it all',
-          sound: 'iRÓL',
-          detail: 'Flap T: o "t" soa como "r" brando ao emendar em "all"'
+          words: `${curClean} you`,
+          sound: assimSound,
+          detail: `3. Assimilation (Fusão de Sons): colisão de "${isT ? 't' : 'd'}" com "y" gera o som africado "${isT ? 'tchu' : 'dju'}"`
         });
-      } else if (curClean === 'did' && nextClean === 'you') {
+      }
+      // --- 1. FLAP T / FLAP D (O som de 'R' suave entre vogais) ---
+      else if ((endConsonant === 't' || endConsonant === 'd') && !isBlockedCluster && startsWithVowelSound(nextClean)) {
+        const isD = endConsonant === 'd';
+        const root = curBr.replace(/[td]$/i, '');
+        const flapSound = `${formatTonicStress(root)}r${nextBr.toLowerCase()}`;
         soundGuide.push({
-          words: 'did you',
-          sound: 'DIdju',
-          detail: 'Assimilation: a fusão de "d" + "y" gera o som "dju"'
+          words: `${curClean} ${nextClean}`,
+          sound: flapSound,
+          detail: `1. Flap ${isD ? 'D' : 'T'}: o som de "${isD ? 'd' : 't'}" entre vogais vira o "r" brando americano (como em "cara"), unindo em "${flapSound}"`
         });
-      } else if (curClean === 'not' && nextClean === 'you') {
-        soundGuide.push({
-          words: 'not you',
-          sound: 'NÁtchu',
-          detail: 'Assimilation: a fusão de "t" + "y" gera o som "tchu"'
-        });
-      } else if (curClean === 'go' && nextClean === 'out') {
+      }
+      // --- 4. INTRUSION (/w/ suave entre vogais) ---
+      else if (curClean === 'go' && nextClean === 'out') {
         soundGuide.push({
           words: 'go out',
           sound: 'gouWAUT',
-          detail: 'Intrusion: surge um som suave de "w" entre as vogais'
+          detail: '4. Intrusion: surge um som suave de "w" entre as vogais para fluidez'
         });
-      } else {
-        // 2. Generic Consonant + Vowel linking with clitics (in, on, at, up, of, it, etc.)
-        const endConsonant = getEndingConsonantSound(curClean);
-        if (endConsonant && startsWithVowelSound(nextClean) && LINKING_CLITICS.has(nextClean)) {
-          const { br: curBr } = wordToPhonetic(curClean);
-          const { br: nextBr } = wordToPhonetic(nextClean);
-          const root = formatTonicStress(curBr);
-          soundGuide.push({
-            words: `${curClean} ${nextClean}`,
-            sound: `${root}${nextBr.toLowerCase()}`,
-            detail: `Linking: a consoante "${endConsonant}" conecta direto na vogal de "${nextClean}"`
-          });
-        }
+      } else if (curClean === 'do' && nextClean === 'it') {
+        soundGuide.push({
+          words: 'do it',
+          sound: 'duWIT',
+          detail: '4. Intrusion: surge um som suave de "w" entre as vogais'
+        });
+      }
+      // --- 6. CATENATION (Linking Consoante + Vogal) ---
+      else if (endConsonant && startsWithVowelSound(nextClean) && LINKING_CLITICS.has(nextClean)) {
+        const linkSound = `${formatTonicStress(curBr)}${nextBr.toLowerCase()}`;
+        soundGuide.push({
+          words: `${curClean} ${nextClean}`,
+          sound: linkSound,
+          detail: `6. Catenation (Linking C-V): a consoante final "${endConsonant}" desliza na vogal de "${nextClean}"`
+        });
       }
     }
   }
 
-  // Pass 2: Check for genuine PHONETIC TRAPS in isolated words
+  // Pass 2: Check for genuine PHONETIC TRAPS & Glottal Stops in isolated words (skip if already covered in a connected pair)
+  const coveredWords = new Set();
+  for (const item of soundGuide) {
+    for (const w of (item.words || '').toLowerCase().split(/\s+/)) {
+      coveredWords.add(w.replace(/[^a-z']/g, ''));
+    }
+  }
+
   for (const rawWord of rawWords) {
     const cleanWord = rawWord.toLowerCase().replace(/[^a-z']/g, '');
-    if (PHONETIC_TRAPS[cleanWord]) {
+    if (PHONETIC_TRAPS[cleanWord] && !coveredWords.has(cleanWord)) {
       const trap = PHONETIC_TRAPS[cleanWord];
       soundGuide.push({
         words: cleanWord,
         sound: trap.sound,
         detail: trap.tip
       });
+      coveredWords.add(cleanWord);
     }
   }
 
@@ -730,10 +744,10 @@ export function analyzeConnectedSpeech(phrase) {
     if (uniqueGuide.length >= 4) break;
   }
 
-  const teacherNotes = generateTeacherBlackboardNotes(phrase, uniqueGuide);
+  const teacherNotes = generateTeacherBlackboardNotes(clean, uniqueGuide);
 
   return {
-    linkedHtml: phrase,
+    linkedHtml: clean,
     soundGuide: uniqueGuide,
     teacherNotes,
     hasConnections: uniqueGuide.length > 0
@@ -745,7 +759,7 @@ export function analyzeConnectedSpeech(phrase) {
  * Generates clear, pedagogical mechanical notes on speech physical action.
  * Zero theoretical grammar — explains purely physical mouth/tongue actions and connections.
  */
-function generateTeacherBlackboardNotes(phrase, soundGuide) {
+export function generateTeacherBlackboardNotes(phrase, soundGuide) {
   if (!soundGuide || soundGuide.length === 0) {
     return {
       notes: [
@@ -769,24 +783,84 @@ function generateTeacherBlackboardNotes(phrase, soundGuide) {
     const leftWord = parts[0] || '';
     const rightWord = parts.slice(1).join(' ') || '';
 
-    if (detailLower.includes('elision') || detailLower.includes('elisão') || detailLower.includes('desaparece') || detailLower.includes('omitido')) {
+    if (detailLower.includes('flap') || detailLower.includes('brando')) {
+      const isD = detailLower.includes('flap d') || leftWord.endsWith('d') || leftWord.endsWith('de');
       notes.push({
-        type: 'elision',
-        title: `✂️ Quem sumiu: [${item.words}] ➔ "${item.sound}"`,
-        text: `A consoante final de parada é engolida pela língua para não interromper a velocidade da fala. A boca cancela a pausa: ${item.words.replace(/\s+/, ' ➔ ')} = "${item.sound}".`,
+        type: 'flap',
+        title: `🔄 1. Flap ${isD ? 'D' : 'T'} (Som de 'R' Suave): [${item.words}] ➔ "${item.sound}"`,
+        text: `No inglês americano, quando o '${isD ? 'd' : 't'}' fica entre duas vogais, a ponta da língua dá apenas um toque rápido no palato (alveolar tap), soando exatamente como o 'r' brando brasileiro (como em "cara" ou "meira"). É PROIBIDO manter som duro de '${isD ? 'd' : 't'}': ${item.words} = "${item.sound}".`,
         diagram: {
           left: leftWord,
-          action: '✂️ some o som final',
+          action: `🔄 vira flap "r" com`,
+          right: rightWord,
+          result: item.sound,
+          type: 'flap'
+        }
+      });
+      if (!tipAction) tipAction = `Ao falar "${item.words}", toque a ponta da língua no céu da boca de forma ultra-rápida ("${item.sound}"). Nunca diga som de "${isD ? 'd' : 't'}" duro!`;
+    } else if (detailLower.includes('elision') || detailLower.includes('elisão') || detailLower.includes('desaparece') || detailLower.includes('omitido')) {
+      const isH = detailLower.includes('h');
+      notes.push({
+        type: 'elision',
+        title: `✂️ 2. Elision (Omissão de Sons): [${item.words}] ➔ "${item.sound}"`,
+        text: isH
+          ? `O som de 'h' em pronomes átonos (him, her, his) desaparece na velocidade nativa, conectando a consoante anterior diretamente na vogal seguinte: ${item.words} = "${item.sound}".`
+          : `A consoante final de parada (/t/ ou /d/) é engolida pela língua para acelerar a fala e economizar energia muscular: ${item.words} = "${item.sound}".`,
+        diagram: {
+          left: leftWord,
+          action: isH ? "✂️ some o 'h' de" : "✂️ some o som final de",
           right: rightWord,
           result: item.sound,
           type: 'elision'
         }
       });
-      if (!tipAction) tipAction = `Não trave a língua nas consoantes que somem (ex: "${leftWord}"). Conecte direto em "${rightWord}".`;
-    } else if (detailLower.includes('linking') || detailLower.includes('gruda') || detailLower.includes('conecta') || detailLower.includes('junta')) {
+      if (!tipAction) tipAction = `Não trave a língua nas consoantes que somem em "${item.words}". Deixe o som passar direto!`;
+    } else if (detailLower.includes('assimilation') || detailLower.includes('fusão')) {
+      notes.push({
+        type: 'assimilation',
+        title: `⚡ 3. Assimilation (Fusão de Sons): [${item.words}] ➔ "${item.sound}"`,
+        text: `O encontro de consoante dental ('t' ou 'd') com a semivogal 'y' funde os dois sons em um fonema africado natural (T+Y vira "tch", D+Y vira "dj"): ${item.words} ➔ "${item.sound}".`,
+        diagram: {
+          left: leftWord,
+          action: '⚡ funde sons com',
+          right: rightWord,
+          result: item.sound,
+          type: 'assimilation'
+        }
+      });
+      if (!tipAction) tipAction = `Na junção de "${item.words}", deixe os dentes se fecharem suavemente para soar "${item.sound}".`;
+    } else if (detailLower.includes('glottal') || detailLower.includes('corte glotal')) {
+      notes.push({
+        type: 'glottal',
+        title: `🛑 4. Glottal Stop (Corte Glotal / T Preso): "${item.words}" ➔ "${item.sound}"`,
+        text: `O americano não solta a explosão do "t" antes de "n". O fluxo de ar é interrompido momentaneamente nas pregas vocais e liberado pelo nariz: ${item.words} ➔ "${item.sound}".`,
+        diagram: {
+          left: item.words,
+          action: '🛑 corte glotal:',
+          right: '',
+          result: item.sound,
+          type: 'glottal'
+        }
+      });
+      if (!tipAction) tipAction = `Prenda o ar na garganta ao pronunciar "${item.words}" ("${item.sound}").`;
+    } else if (detailLower.includes('schwa') || detailLower.includes('redução')) {
+      notes.push({
+        type: 'schwa',
+        title: `💤 5. Schwa (Redução de Vogais): "${item.words}"`,
+        text: `Vogais átonas em palavras funcionais relaxam completamente para o som preguiçoso "â", garantindo fluidez musical sem pausas artificiais.`,
+        diagram: {
+          left: item.words,
+          action: '💤 som relaxado:',
+          right: '',
+          result: item.sound,
+          type: 'schwa'
+        }
+      });
+      if (!tipAction) tipAction = `Não tente pronunciar as vogais de "${item.words}" abertas. Relaxe a boca no som de "â".`;
+    } else if (detailLower.includes('catenation') || detailLower.includes('linking') || detailLower.includes('gruda') || detailLower.includes('conecta') || detailLower.includes('junta')) {
       notes.push({
         type: 'linking',
-        title: `🔗 Quem grudou em quem: [${item.words}] ➔ "${item.sound}"`,
+        title: `🔗 6. Catenation (Linking C-V): [${item.words}] ➔ "${item.sound}"`,
         text: `A consoante final de uma palavra desliza diretamente para a vogal seguinte sem interrupção de ar. O cérebro do nativo processa as duas palavras como um único bloco musical: ${item.words.replace(/\s+/, ' + ')} = "${item.sound}".`,
         diagram: {
           left: leftWord,
@@ -797,34 +871,6 @@ function generateTeacherBlackboardNotes(phrase, soundGuide) {
         }
       });
       if (!tipAction) tipAction = `Trate "${item.words}" como se fosse uma única palavra brasileira ("${item.sound}"). Não respire no meio!`;
-    } else if (detailLower.includes('flap') || detailLower.includes('brando')) {
-      notes.push({
-        type: 'flap',
-        title: `🔄 Mudança de Som (Flap T/D): [${item.words}] ➔ "${item.sound}"`,
-        text: `O som de 't' ou 'd' entre vogais não é aspirado; a ponta da língua dá um toque rápido no céu da boca, soando idêntico ao "r" brando brasileiro (como em "caro" ou "prato"): ${item.words} ➔ "${item.sound}".`,
-        diagram: {
-          left: leftWord,
-          action: '🔄 vira flap "r" com',
-          right: rightWord,
-          result: item.sound,
-          type: 'flap'
-        }
-      });
-      if (!tipAction) tipAction = `Ao falar "${item.words}", toque a ponta da língua no céu da boca de forma ultra-rápida, como se dissesse "arara".`;
-    } else if (detailLower.includes('assimilation') || detailLower.includes('fusão')) {
-      notes.push({
-        type: 'assimilation',
-        title: `⚡ Fusão Sonora: [${item.words}] ➔ "${item.sound}"`,
-        text: `O encontro de consoante dental ('t' ou 'd') com a semivogal 'y' funde os dois sons em um fonema africado natural: ${item.words} ➔ "${item.sound}".`,
-        diagram: {
-          left: leftWord,
-          action: '⚡ funde sons com',
-          right: rightWord,
-          result: item.sound,
-          type: 'assimilation'
-        }
-      });
-      if (!tipAction) tipAction = `Na junção de "${item.words}", deixe os dentes se fecharem suavemente para soar "${item.sound}".`;
     } else {
       notes.push({
         type: 'trap',
@@ -865,7 +911,7 @@ function formatTonicStress(brWord) {
  * Merge two words into a single fluid connected speech block (Zero hyphens, uppercase stress)
  */
 function getMergedConnectedToken(curClean, nextClean, curBr, nextBr) {
-  // 1. ELISION
+  // 1. ELISION (Queda de T/D em clusters e H-Dropping)
   if (curClean === 'and' && nextClean === 'i') return 'eNAI';
   if (curClean === 'and' && nextClean === 'a') return 'eNA';
   if (curClean === 'and' && nextClean === 'all') return 'eNÓL';
@@ -876,51 +922,52 @@ function getMergedConnectedToken(curClean, nextClean, curBr, nextBr) {
   if ((curClean === "couldn't" || curClean === 'couldnt') && nextClean === 'be') return 'kúdnBÍ';
   if ((curClean === "shouldn't" || curClean === 'shouldnt') && nextClean === 'be') return 'chúdnBÍ';
 
-  // 2. LINKING (C-V)
-  if (curClean === 'if' && nextClean === 'i') return 'iFAI';
-  if (curClean === 'showed' && nextClean === 'up') return 'CHOUDâp';
-  if (curClean === 'show' && nextClean === 'up') return 'CHOUâp';
-  if (curClean === 'welcome' && nextClean === 'in') return 'uélkâMIN';
-  if (curClean === 'lots' && nextClean === 'of') return 'LÓTsov';
-  if (curClean === 'videos' && nextClean === 'on') return 'VÍdiouzon';
-  if (curClean === 'love' && nextClean === 'it') return 'LÂvit';
-  if (curClean === 'did' && nextClean === 'on') return 'DIdon';
-  if (curClean === 'much' && nextClean === 'as') return 'MÂTCHaz';
-  if (curClean === 'have' && (nextClean === 'a' || nextClean === 'an')) return 'REva';
-  if (curClean === 'tell' && nextClean === 'him') return 'TElim';
-  if (curClean === 'current' && (nextClean === 'events' || nextClean === 'event')) return 'CURRENTevents';
+  // H-dropping
+  if (getEndingConsonantSound(curClean) && (nextClean === 'him' || nextClean === 'her' || nextClean === 'his')) {
+    if (nextClean === 'him') return `${formatTonicStress(curBr)}im`;
+    if (nextClean === 'her') return `${formatTonicStress(curBr)}âr`;
+    if (nextClean === 'his') return `${formatTonicStress(curBr)}iz`;
+  }
 
-  // 3. ASSIMILATION
+  // 2. ASSIMILATION (T/D + Y)
   if (curClean === 'did' && nextClean === 'you') return 'DIdju';
   if (curClean === 'not' && nextClean === 'you') return 'NÁtchu';
+  if (curClean === "don't" && nextClean === 'you') return 'DÔNTchu';
   if (curClean === 'want' && nextClean === 'you') return 'uonTCHU';
+  if (curClean === 'meet' && nextClean === 'you') return 'MÍTchu';
   if (curClean === 'would' && nextClean === 'you') return 'uúDJU';
   if (curClean === 'could' && nextClean === 'you') return 'kúDJU';
-  if ((curClean.endsWith('t') || curClean.endsWith('d')) && nextClean === 'you') {
-    const isT = curClean.endsWith('t');
+  if (curClean === 'need' && nextClean === 'you') return 'NÍdju';
+  if ((curClean.endsWith('t') || curClean.endsWith('d') || curClean.endsWith('te') || curClean.endsWith('de')) && nextClean === 'you') {
+    const isT = curClean.endsWith('t') || curClean.endsWith('te');
     const root = (curBr || curClean).replace(/[td]$/i, '');
     return isT ? `${root.toUpperCase()}tchu` : `${root.toUpperCase()}dju`;
   }
 
-  // 4. INTRUSION
+  // 3. INTRUSION
   if (curClean === 'go' && nextClean === 'out') return 'gouWAUT';
   if (curClean === 'do' && nextClean === 'it') return 'duWIT';
   if (curClean === 'i' && nextClean === 'am') return 'aiYEM';
 
-  // 5. FLAP T (intervocalic)
-  if (curClean === 'about' && nextClean === 'it') return 'aBAUrit';
-  if (curClean === 'it' && nextClean === 'all') return 'iRÓL';
-  if (curClean === 'what' && nextClean === 'is') return 'uóRIZ';
-  if (curClean === 'get' && nextClean === 'it') return 'guéRIT';
+  // 4. FLAP T / FLAP D (T ou D entre sons de vogais vira o 'r' brando)
+  const endConsonant = getEndingConsonantSound(curClean);
+  const isBlockedCluster = curClean.endsWith('nd') || curClean.endsWith('nt') || curClean.endsWith('st') || curClean.endsWith('ld') || curClean.endsWith('lt');
 
-  const isVowelBeforeLast = /[aeiou]/i.test(curClean.slice(-2, -1));
-  const isBlockedCluster = curClean.endsWith('nd') || curClean.endsWith('nt') || curClean.endsWith('st');
-  if (curClean.endsWith('t') && isVowelBeforeLast && !isBlockedCluster && startsWithVowelSound(nextClean)) {
-    const root = (curBr || curClean).replace(/t$/i, '');
-    return `${root.toUpperCase()}r${nextBr.toLowerCase()}`;
+  if ((endConsonant === 't' || endConsonant === 'd') && !isBlockedCluster && startsWithVowelSound(nextClean)) {
+    const root = curBr.replace(/[td]$/i, '');
+    return `${formatTonicStress(root)}r${nextBr.toLowerCase()}`;
   }
 
-  const endConsonant = getEndingConsonantSound(curClean);
+  // 5. CATENATION (Linking Consoante + Vogal)
+  if (curClean === 'if' && nextClean === 'i') return 'iFAI';
+  if (curClean === 'showed' && nextClean === 'up') return 'CHOUDâp';
+  if (curClean === 'welcome' && nextClean === 'in') return 'uélkâMIN';
+  if (curClean === 'lots' && nextClean === 'of') return 'LÓTsov';
+  if (curClean === 'videos' && nextClean === 'on') return 'VÍdiouzon';
+  if (curClean === 'love' && nextClean === 'it') return 'LÂvit';
+  if (curClean === 'much' && nextClean === 'as') return 'MÂTCHaz';
+  if (curClean === 'eyes' && nextClean === 'of') return 'ÁIzov';
+
   if (endConsonant && startsWithVowelSound(nextClean) && LINKING_CLITICS.has(nextClean)) {
     return `${formatTonicStress(curBr)}${nextBr.toLowerCase()}`;
   }
@@ -931,7 +978,7 @@ function getMergedConnectedToken(curClean, nextClean, curBr, nextBr) {
 /**
  * Get permanent phonetic transcription for a full phrase (0 tokens, 100% offline)
  * Returns standard IPA, word-by-word Brazilian respelling, and Connected Speech flow.
- * Bumped to v8 cache key to immediately purge outdated cache.
+ * Bumped to v9 cache key to immediately purge outdated cache (Flap T/D + subtitle noise fixes).
  * @param {string} phrase
  * @returns {{ ipa: string, br: string, connectedBr: string }}
  */
@@ -940,16 +987,16 @@ export function getPhrasePhonetics(phrase) {
     return { ipa: '', br: '', connectedBr: '' };
   }
 
-  const cleanPhrase = phrase.trim();
-  // v8 guarantees automatic cache invalidation on mobile and PC
-  const cacheKey = `phonetic_v8_${cleanPhrase.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+  const cleanPhrase = sanitizeSubtitleText(phrase) || phrase.trim();
+  // v9 guarantees automatic cache invalidation on mobile and PC
+  const cacheKey = `phonetic_v9_${cleanPhrase.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
   // 1. Check localStorage permanent cache
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (parsed.br && parsed.connectedBr && !parsed.br.includes('monêi') && !parsed.br.includes('tchôud')) {
+      if (parsed.br && parsed.connectedBr && !parsed.br.includes('monêi') && !parsed.br.includes('tchôud') && !parsed.connectedBr.includes('MÊIDa')) {
         return parsed;
       }
     }
@@ -1032,12 +1079,15 @@ export function enrichClipsWithPhonetics(clips) {
       clip.fonetica_br.includes('tchôud') ||
       clip.fonetica_br.includes('djirlfriend') ||
       clip.fonetica_br.includes('uelkôum') ||
-      clip.fonetica_br.includes('monêi')
+      clip.fonetica_br.includes('monêi') ||
+      clip.fonetica_br.includes('mêida')
     )) || (clip.fonetica_connected && (
       clip.fonetica_connected.includes('TCHÔUD') ||
       clip.fonetica_connected.includes('DJIRLFRIEND') ||
       clip.fonetica_connected.includes('UELKÔUM') ||
-      clip.fonetica_connected.includes('MONÊI')
+      clip.fonetica_connected.includes('MONÊI') ||
+      clip.fonetica_connected.includes('MÊIDa') ||
+      clip.fonetica_connected.includes('MÊIDA')
     ));
 
     const isAiEnriched = clip.connected_speech && clip.connected_speech.ai_enriched && !isCorrupt;
@@ -1078,40 +1128,41 @@ export async function syncDeepConnectedSpeechToDB(clip, updateClipFn) {
     const prompt = `You are a world-class Senior English Phonetician and Neurolinguist specialized in American English for Brazilian Portuguese speakers.
 Analyze this spoken English sentence: "${phrase}"
 
-MATRIZ DE CONVERSÃO FONÉTICA OBRIGATÓRIA:
-1. Vogal Curta/Schwa (o/u relaxado): Palavras como money, come, but, up, some, welcome.
-   Regra: Use "â". (Ex: mâni, kâm, bât, âp, sâm, uélkâm). É estritamente proibido usar "o", "ô" ou "u" nestes fonemas.
-2. Consoante 'G' Duro: Palavras como Girl, Get, Give, Girlfriend.
-   Regra: Use "g" (Ex: gârl, guét, guív, gârlfrend). É TERMINANTEMENTE PROIBIDO usar "dj" para G duro.
-3. Consoante /dʒ/ (j/g suave): Palavras como Just, Magic, Job.
-   Regra: Use "dj" (Ex: djâst, médjik, djób).
-4. Consoante /ʃ/ (sh): Palavras como Showed, She, Should, Show.
-   Regra: Use "ch" (Ex: chôud, chí, chúd, chôu). É PROIBIDO usar "tch" para o som de SH.
-5. Consoante /tʃ/ (ch): Palavras como Much, Chair, Catch.
-   Regra: Use "tch" (Ex: mâtch, tchéir, kétch).
-6. Terminações em "-ed": Represente exclusivamente o som final real.
-   - Voiceless: looked -> lúkt, watched -> uótcht.
-   - Voiced: showed -> chôud, loved -> lâvd.
-   - T/D: wanted -> uóntid, needed -> nídid.
-   Nunca insira vogais fantasmas.
-7. Letras Mudas (Silent Letters): Devem sumir da transcrição (half = réf, talk = tók, walk = uók, could = kúd, Christmas = krísmes).
+DIRETRIZ DE ENGENHARIA FONÉTICA (OS 6 GRANDES FENÔMENOS DO CONNECTED SPEECH):
+1. Flap T / Flap D (O som de 'R' suave entre vogais):
+   - REGRA ABSOLUTA: Sempre que as consoantes 'T' ou 'D' estiverem no meio de dois sons de vogais (dentro de uma palavra ou na junção entre palavras), o som resultante DEVE ser transcrito exclusivamente com a letra 'r' (o 'r' brando do português em 'cara' ou 'meira').
+   - Exemplos em palavras: water -> uórer; better -> bérer; city -> síri; ready -> réri.
+   - Exemplos em junções: made a -> MÊIra; had a -> RÉra; put it -> PÚrit; get it -> GUÉrit; but I -> BÂRai; what a -> UÓra.
+   - PROIBIÇÃO ABSOLUTA: Nunca mantenha o som de 'd' ou 't' nestas condições! Gerar "mêida" para "made a" é uma falha crítica inaceitável. O único output aceitável é "MÊIra".
+
+2. Elision (Omissão de Sons):
+   - Omissão de H: Na fala rápida, o 'h' de pronomes (him, her, he, his) desaparece: tell him -> TÉlim; with her -> UÍZâr.
+   - Queda de T/D final em clusters: and I -> eNAI; just as -> DJÂSaz; wouldn't be -> uúdnBÍ.
+
+3. Assimilation (Fusão de Sons):
+   - T + Y = som de CH/TCH: don't you -> DÔNTchu; meet you -> MÍTchu; not you -> NÁtchu.
+   - D + Y = som de DJ: did you -> DIdju; would you -> uúDJU; need you -> NÍdju.
+
+4. Glottal Stop (Corte Glotal / T Preso):
+   - T antes de N: respiração para na garganta e sai pelo nariz: mountain -> máun'n; button -> bâ'n; exactly -> igzák'li.
+
+5. Schwa (Redução de Vogais):
+   - Palavras curtas (to, for, at, can, a, of) relaxam para 'â': to do -> tâ DU; for you -> fâr YÂ; a man -> a MÉN.
+
+6. Catenation (Linking Consoante + Vogal):
+   - Consoante final não-T/D desliza suavemente na vogal seguinte: eyes of -> ÁIzov; showed up -> CHOUDâp; welcome in -> uélkâMIN; lots of -> LÓTsov; love it -> LÂvit.
+
+MATRIZ COMPLEMENTAR DE PRONÚNCIA:
+- Vogal Curta/Schwa: money -> mâni (nunca monêi), come -> kâm, up -> âp, welcome -> uélkâm.
+- Consoante 'G' Duro: girl -> gârl, girlfriend -> gârlfrend (nunca djirlfriend).
+- Consoante /ʃ/ (sh): showed -> chôud, she -> chí (nunca tchôud).
+- Passado em -ed: looked -> lúkt, showed -> chôud, wanted -> uóntid.
+- Letras Mudas: half -> réf, talk -> tók, walk -> uók, could -> kúd, Christmas -> krísmes.
 
 GOLDEN RULE FOR CONNECTED SPEECH:
 - STRICTLY FORBIDDEN to use hyphens (-) between connected words.
 - Join connected words into a single continuous word block.
 - Use UPPERCASE letters on the stressed syllable (tonic stress) to guide reading rhythm.
-Examples:
-- "if I" -> "iFAI"
-- "showed up" -> "CHOUDâp"
-- "welcome in" -> "uélkâMIN"
-- "wouldn't be" -> "uúdnBÍ"
-- "lots of" -> "LÓTsov"
-- "and I" -> "eNAI"
-- "just as" -> "DJÂSaz"
-- "love it" -> "LÂvit"
-
-PROIBIÇÃO DE OMISSÃO (Sound Guide):
-Provide 2 to 4 clear, didactic explanations of the connections and reductions in this sentence. NEVER leave soundGuide empty.
 
 Return STRICT JSON only, no markdown:
 {
@@ -1120,9 +1171,9 @@ Return STRICT JSON only, no markdown:
   "fonetica_connected": "full sentence with fused blocks and UPPERCASE stress, NO hyphens",
   "soundGuide": [
     {
-      "words": "if I",
-      "sound": "iFAI",
-      "detail": "Linking: a consoante 'f' gruda na vogal 'I'"
+      "words": "made a",
+      "sound": "MÊIra",
+      "detail": "1. Flap D: o 'd' entre vogais vira o 'r' brando americano (como em 'cara'), unindo em 'MÊIra'"
     }
   ]
 }`;
@@ -1141,12 +1192,15 @@ Return STRICT JSON only, no markdown:
       aiData.fonetica_br.includes('tchôud') ||
       aiData.fonetica_br.includes('djirlfriend') ||
       aiData.fonetica_br.includes('uelkôum') ||
-      aiData.fonetica_br.includes('monêi')
+      aiData.fonetica_br.includes('monêi') ||
+      aiData.fonetica_br.includes('mêida')
     )) || (aiData?.fonetica_connected && (
       aiData.fonetica_connected.includes('TCHÔUD') ||
       aiData.fonetica_connected.includes('DJIRLFRIEND') ||
       aiData.fonetica_connected.includes('UELKÔUM') ||
-      aiData.fonetica_connected.includes('MONÊI')
+      aiData.fonetica_connected.includes('MONÊI') ||
+      aiData.fonetica_connected.includes('MÊIDa') ||
+      aiData.fonetica_connected.includes('MÊIDA')
     ));
 
     const guide = (!isAiCorrupt && aiData?.soundGuide && Array.isArray(aiData.soundGuide) && aiData.soundGuide.length > 0)

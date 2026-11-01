@@ -108,69 +108,72 @@ CREATE TABLE study_log ( date DATE PRIMARY KEY );
           Esta matriz define as <strong>regras rígidas de fonologia do inglês americano</strong> aplicadas tanto no motor offline quanto no sincronizador da nuvem. O objetivo é eliminar o "abrasileiramento" literal de letras e guiar a memória muscular para o som nativo real.
         </p>
 
-        <!-- Rules Matrix Grid -->
+        <!-- Rules Matrix Grid: 6 Grandes Fenômenos do Connected Speech & Fonética Obrigatória -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: var(--space-4);">
           
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-weight: 700; color: #fbbf24; font-size: 13px; margin-bottom: 4px;">1. Vogal Curta / Schwa (/ʌ/ e /ə/)</div>
-            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">O inglês americano reduz vogais átonas para o som de <strong>"â"</strong> (nunca som aberto de 'o' ou 'u').</p>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(239,68,68,0.25); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #f87171; font-size: 13px; margin-bottom: 4px;">1. Flap T & Flap D (/ɾ/ ➔ R Brando)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">T ou D entre sons de vogal viram o <strong>'R' fraco brasileiro</strong> (como em 'cara/barata'). <em>Proibição de manter T ou D!</em></p>
             <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • made a ➔ MÊIra (NUNCA "mêida")<br>
+              • water ➔ uórer | better ➔ bérer<br>
+              • put it ➔ PÚrit | but I ➔ BÂRai<br>
+              • had a ➔ RÉra | about it ➔ aBAUrit
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #fbbf24; font-size: 13px; margin-bottom: 4px;">2. Elision (Omissão de Sons)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">H mudo em pronomes átonos (him, her, his) e desaparecimento de T/D em encontros consonantais.</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • tell him ➔ TÉlim (some o H)<br>
+              • with her ➔ UÍZâr (some o H)<br>
+              • and I ➔ eNAI (some o D)<br>
+              • just as ➔ DJÂSaz (some o T)
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(168,85,247,0.25); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #c084fc; font-size: 13px; margin-bottom: 4px;">3. Assimilation (Fusão em TCH / DJ)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">T final fundido com Y vira <strong>/tʃ/ ("tch")</strong>; D final com Y vira <strong>/dʒ/ ("dj")</strong>.</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • did you ➔ DIdju<br>
+              • would you ➔ uúDJU<br>
+              • don't you ➔ DÔNTchu<br>
+              • meet you ➔ MÍTchu
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(59,130,246,0.25); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #60a5fa; font-size: 13px; margin-bottom: 4px;">4. Glottal Stop / T Preso (ʔ)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Antes de N silábico ou consoante, o T é interrompido na garganta (corte seco sem soltar o ar).</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • mountain ➔ máun'n<br>
+              • button ➔ bâ'n<br>
+              • cotton ➔ kó'n | written ➔ rí'n<br>
+              • exactly ➔ igzák'li
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(16,185,129,0.25); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #34d399; font-size: 13px; margin-bottom: 4px;">5. Schwa & Reduções (/ə/ e /ʌ/)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Palavras gramaticais átonas se reduzem a <strong>"â"</strong> ou <strong>"e"</strong> curto, nunca vogal cheia.</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • to do ➔ tâ DU | for me ➔ fâr MÍ<br>
+              • can go ➔ kên GOU | a man ➔ a MÊN<br>
               • money ➔ mâni (não "monêi")<br>
-              • come ➔ kâm | some ➔ sâm<br>
-              • welcome ➔ uélkâm (não "uelkôum")<br>
-              • up ➔ âp | but ➔ bât
+              • welcome ➔ uélkâm (não "uelkôum")
             </div>
           </div>
 
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-weight: 700; color: #34d399; font-size: 13px; margin-bottom: 4px;">2. Consoante 'G' Duro vs. /dʒ/</div>
-            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Palavras de raiz germânica mantêm o <strong>G duro (/ɡ/)</strong>. Proibido transformar em "dj".</p>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(236,72,153,0.25); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #f472b6; font-size: 13px; margin-bottom: 4px;">6. Catenation (Linking C-V Contínuo)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Consoante desliza suavemente para a vogal seguinte. Bloco único em MAIÚSCULAS na tônica, ZERO hífens.</p>
             <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
-              • girlfriend ➔ gârlfrend (não "djirlfriend")<br>
-              • get ➔ guét | give ➔ guív<br>
-              • Just ➔ djâst | Job ➔ djób (aqui sim é /dʒ/)
-            </div>
-          </div>
-
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-weight: 700; color: #a78bfa; font-size: 13px; margin-bottom: 4px;">3. Consoante /ʃ/ (SH) vs. /tʃ/ (CH)</div>
-            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">O fonema <strong>/ʃ/</strong> soa suave como em "chá". O fonema <strong>/tʃ/</strong> soa africado como em "tchau".</p>
-            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
-              • showed ➔ chôud (proibido "tchôud")<br>
-              • she ➔ chí | should ➔ chúd<br>
-              • much ➔ mâtch | catch ➔ kétch
-            </div>
-          </div>
-
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-weight: 700; color: #f43f5e; font-size: 13px; margin-bottom: 4px;">4. Passado Regular em "-ed" (Regra Tripla)</div>
-            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Som final estritamente nativo. <strong>Zero vogais fantasmas</strong> (nunca gerar "lúkedi").</p>
-            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
-              • looked ➔ lúkt (após som surdo)<br>
-              • showed ➔ chôud (após som sonoro)<br>
-              • wanted ➔ uóntid (após som de t/d)
-            </div>
-          </div>
-
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-weight: 700; color: #38bdf8; font-size: 13px; margin-bottom: 4px;">5. Letras Mudas (Silent Letters)</div>
-            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Consoantes não pronunciadas são 100% omitidas para não enganar a boca do estudante.</p>
-            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
-              • half ➔ réf (L mudo)<br>
-              • talk ➔ tók | walk ➔ uók (L mudo)<br>
-              • could ➔ kúd | knife ➔ náif (K mudo)<br>
-              • Christmas ➔ krísmes (T mudo)
-            </div>
-          </div>
-
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
-            <div style="font-weight: 700; color: #ec4899; font-size: 13px; margin-bottom: 4px;">6. Regra de Ouro do Connected Speech</div>
-            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Zero hífens. Blocos fundidos com MAIÚSCULAS na tônica para marcar a batida do ritmo.</p>
-            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
-              • if I ➔ iFAI<br>
+              • eyes of ➔ ÁIzov (eyes = áiz)<br>
               • showed up ➔ CHOUDâp<br>
               • welcome in ➔ uélkâMIN<br>
-              • wouldn't be ➔ uúdnBÍ
+              • girlfriend ➔ gârlfrend (G duro)
             </div>
           </div>
 
