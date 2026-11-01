@@ -344,7 +344,12 @@ const PHONETIC_TRAPS = {
   'know': { sound: 'nôu', tip: "Letra Muda: o 'K' inicial é mudo (fala-se 'nôu')!" },
   'write': { sound: 'ráit', tip: "Letra Muda: o 'W' inicial é mudo (fala-se 'ráit')!" },
   'wrong': { sound: 'róng', tip: "Letra Muda: o 'W' inicial é mudo (fala-se 'róng')!" },
-  'christmas': { sound: 'krísmes', tip: "Letra Muda: o 'T' de Christmas não é pronunciado (krísmes)!" }
+  'christmas': { sound: 'krísmes', tip: "Letra Muda: o 'T' de Christmas não é pronunciado (krísmes)!" },
+  'girlfriend': { sound: 'gârlfrend', tip: "Consoante 'G' Duro: pronuncia-se 'gârlfrend' com 'g' duro como em 'gato', NUNCA 'djirlfriend'!" },
+  'girl': { sound: 'gârl', tip: "Consoante 'G' Duro: pronuncia-se 'gârl' com 'g' duro como em 'gato', NUNCA 'dj'!" },
+  'welcome': { sound: 'uélkâm', tip: "Vogal Reduzida (Schwa): o final é 'kâm' com som fechado ('uélkâm'), nunca 'kôum'!" },
+  'showed': { sound: 'chôud', tip: "Som de 'SH': pronuncia-se 'chôud' com som suave de 'CH' ou 'X' brasileiro, NUNCA 'tchôud'!" },
+  'she': { sound: 'chí', tip: "Som de 'SH': pronuncia-se 'chí' suave como 'chá', nunca 'tchi'!" }
 };
 
 /**
@@ -725,10 +730,123 @@ export function analyzeConnectedSpeech(phrase) {
     if (uniqueGuide.length >= 4) break;
   }
 
+  const teacherNotes = generateTeacherBlackboardNotes(phrase, uniqueGuide);
+
   return {
     linkedHtml: phrase,
     soundGuide: uniqueGuide,
+    teacherNotes,
     hasConnections: uniqueGuide.length > 0
+  };
+}
+
+/**
+ * 👨‍🏫 Modo Lousa Digital do Professor
+ * Generates clear, pedagogical mechanical notes on speech physical action.
+ * Zero theoretical grammar — explains purely physical mouth/tongue actions and connections.
+ */
+function generateTeacherBlackboardNotes(phrase, soundGuide) {
+  if (!soundGuide || soundGuide.length === 0) {
+    return {
+      notes: [
+        {
+          type: 'rhythm',
+          title: "🗣️ Ritmo e Articulação Contínua",
+          text: "Nesta frase, não há colisões duras de consoantes. Solte o ar de forma relaxada e dê ênfase nas sílabas tônicas.",
+          diagram: null
+        }
+      ],
+      shadowingTip: "Mantenha o ar fluindo sem pausas mecânicas entre as palavras."
+    };
+  }
+
+  const notes = [];
+  let tipAction = '';
+
+  for (const item of soundGuide) {
+    const detailLower = (item.detail || '').toLowerCase();
+    const parts = (item.words || '').trim().split(/\s+/);
+    const leftWord = parts[0] || '';
+    const rightWord = parts.slice(1).join(' ') || '';
+
+    if (detailLower.includes('elision') || detailLower.includes('elisão') || detailLower.includes('desaparece') || detailLower.includes('omitido')) {
+      notes.push({
+        type: 'elision',
+        title: `✂️ Quem sumiu: [${item.words}] ➔ "${item.sound}"`,
+        text: `A consoante final de parada é engolida pela língua para não interromper a velocidade da fala. A boca cancela a pausa: ${item.words.replace(/\s+/, ' ➔ ')} = "${item.sound}".`,
+        diagram: {
+          left: leftWord,
+          action: '✂️ some o som final',
+          right: rightWord,
+          result: item.sound,
+          type: 'elision'
+        }
+      });
+      if (!tipAction) tipAction = `Não trave a língua nas consoantes que somem (ex: "${leftWord}"). Conecte direto em "${rightWord}".`;
+    } else if (detailLower.includes('linking') || detailLower.includes('gruda') || detailLower.includes('conecta') || detailLower.includes('junta')) {
+      notes.push({
+        type: 'linking',
+        title: `🔗 Quem grudou em quem: [${item.words}] ➔ "${item.sound}"`,
+        text: `A consoante final de uma palavra desliza diretamente para a vogal seguinte sem interrupção de ar. O cérebro do nativo processa as duas palavras como um único bloco musical: ${item.words.replace(/\s+/, ' + ')} = "${item.sound}".`,
+        diagram: {
+          left: leftWord,
+          action: '🔗 gruda em',
+          right: rightWord,
+          result: item.sound,
+          type: 'linking'
+        }
+      });
+      if (!tipAction) tipAction = `Trate "${item.words}" como se fosse uma única palavra brasileira ("${item.sound}"). Não respire no meio!`;
+    } else if (detailLower.includes('flap') || detailLower.includes('brando')) {
+      notes.push({
+        type: 'flap',
+        title: `🔄 Mudança de Som (Flap T/D): [${item.words}] ➔ "${item.sound}"`,
+        text: `O som de 't' ou 'd' entre vogais não é aspirado; a ponta da língua dá um toque rápido no céu da boca, soando idêntico ao "r" brando brasileiro (como em "caro" ou "prato"): ${item.words} ➔ "${item.sound}".`,
+        diagram: {
+          left: leftWord,
+          action: '🔄 vira flap "r" com',
+          right: rightWord,
+          result: item.sound,
+          type: 'flap'
+        }
+      });
+      if (!tipAction) tipAction = `Ao falar "${item.words}", toque a ponta da língua no céu da boca de forma ultra-rápida, como se dissesse "arara".`;
+    } else if (detailLower.includes('assimilation') || detailLower.includes('fusão')) {
+      notes.push({
+        type: 'assimilation',
+        title: `⚡ Fusão Sonora: [${item.words}] ➔ "${item.sound}"`,
+        text: `O encontro de consoante dental ('t' ou 'd') com a semivogal 'y' funde os dois sons em um fonema africado natural: ${item.words} ➔ "${item.sound}".`,
+        diagram: {
+          left: leftWord,
+          action: '⚡ funde sons com',
+          right: rightWord,
+          result: item.sound,
+          type: 'assimilation'
+        }
+      });
+      if (!tipAction) tipAction = `Na junção de "${item.words}", deixe os dentes se fecharem suavemente para soar "${item.sound}".`;
+    } else {
+      notes.push({
+        type: 'trap',
+        title: `⚠️ Armadilha Sonora: "${item.words}"`,
+        text: item.detail,
+        diagram: {
+          left: item.words,
+          action: '⚠️ som real:',
+          right: '',
+          result: item.sound,
+          type: 'trap'
+        }
+      });
+      if (!tipAction) tipAction = `Cuidado com a armadilha visual de "${item.words}": o som real é "${item.sound}".`;
+    }
+  }
+
+  const shadowingTip = tipAction || "Pronuncie a frase inteira com fluxo contínuo de ar, enfatizando apenas as sílabas em MAIÚSCULAS!";
+
+  return {
+    notes,
+    shadowingTip
   };
 }
 
@@ -908,13 +1026,34 @@ export function enrichClipsWithPhonetics(clips) {
     const phrase = clip.nome || clip.title || '';
     const { ipa, br, connectedBr } = getPhrasePhonetics(phrase);
     const cs = analyzeConnectedSpeech(phrase);
-    const isAiEnriched = clip.connected_speech && clip.connected_speech.ai_enriched;
+
+    // Detect legacy or corrupt transcriptions to immediately purge
+    const isCorrupt = (clip.fonetica_br && (
+      clip.fonetica_br.includes('tchôud') ||
+      clip.fonetica_br.includes('djirlfriend') ||
+      clip.fonetica_br.includes('uelkôum') ||
+      clip.fonetica_br.includes('monêi')
+    )) || (clip.fonetica_connected && (
+      clip.fonetica_connected.includes('TCHÔUD') ||
+      clip.fonetica_connected.includes('DJIRLFRIEND') ||
+      clip.fonetica_connected.includes('UELKÔUM') ||
+      clip.fonetica_connected.includes('MONÊI')
+    ));
+
+    const isAiEnriched = clip.connected_speech && clip.connected_speech.ai_enriched && !isCorrupt;
+    const hasGuide = isAiEnriched && Array.isArray(clip.connected_speech.soundGuide) && clip.connected_speech.soundGuide.length > 0;
+
+    const mergedCs = hasGuide ? {
+      ...clip.connected_speech,
+      teacherNotes: clip.connected_speech.teacherNotes || cs.teacherNotes
+    } : cs;
+
     return {
       ...clip,
       fonetica_ipa: (isAiEnriched && clip.fonetica_ipa) ? clip.fonetica_ipa : ipa,
-      fonetica_br: (isAiEnriched && clip.fonetica_br && !clip.fonetica_br.includes('monêi') && !clip.fonetica_br.includes('tchôud')) ? clip.fonetica_br : br,
+      fonetica_br: (isAiEnriched && clip.fonetica_br) ? clip.fonetica_br : br,
       fonetica_connected: (isAiEnriched && clip.fonetica_connected) ? clip.fonetica_connected : connectedBr,
-      connected_speech: isAiEnriched ? clip.connected_speech : cs
+      connected_speech: mergedCs
     };
   });
 }
@@ -997,21 +1136,37 @@ Return STRICT JSON only, no markdown:
       console.warn('AI JSON parse fallback to local rules:', parseErr);
     }
 
-    const guide = (aiData?.soundGuide && Array.isArray(aiData.soundGuide) && aiData.soundGuide.length > 0)
+    // Check if AI generated corrupt phonetic tokens
+    const isAiCorrupt = (aiData?.fonetica_br && (
+      aiData.fonetica_br.includes('tchôud') ||
+      aiData.fonetica_br.includes('djirlfriend') ||
+      aiData.fonetica_br.includes('uelkôum') ||
+      aiData.fonetica_br.includes('monêi')
+    )) || (aiData?.fonetica_connected && (
+      aiData.fonetica_connected.includes('TCHÔUD') ||
+      aiData.fonetica_connected.includes('DJIRLFRIEND') ||
+      aiData.fonetica_connected.includes('UELKÔUM') ||
+      aiData.fonetica_connected.includes('MONÊI')
+    ));
+
+    const guide = (!isAiCorrupt && aiData?.soundGuide && Array.isArray(aiData.soundGuide) && aiData.soundGuide.length > 0)
       ? aiData.soundGuide
       : localAnalysis.soundGuide;
+
+    const teacherNotes = generateTeacherBlackboardNotes(phrase, guide);
 
     const merged = {
       ...localAnalysis,
       ai_enriched: true,
       soundGuide: guide,
+      teacherNotes,
       hasConnections: guide.length > 0
     };
 
     // Safely update ONLY the phonetic fields on the clip object (never touch timestamps or IDs)
-    clip.fonetica_ipa = aiData?.fonetica_ipa || localPhonetics.ipa;
-    clip.fonetica_br = aiData?.fonetica_br || localPhonetics.br;
-    clip.fonetica_connected = aiData?.fonetica_connected || localPhonetics.connectedBr;
+    clip.fonetica_ipa = (!isAiCorrupt && aiData?.fonetica_ipa) ? aiData.fonetica_ipa : localPhonetics.ipa;
+    clip.fonetica_br = (!isAiCorrupt && aiData?.fonetica_br) ? aiData.fonetica_br : localPhonetics.br;
+    clip.fonetica_connected = (!isAiCorrupt && aiData?.fonetica_connected) ? aiData.fonetica_connected : localPhonetics.connectedBr;
     clip.connected_speech = merged;
 
     if (typeof updateClipFn === 'function') {

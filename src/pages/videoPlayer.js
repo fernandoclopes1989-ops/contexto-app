@@ -491,9 +491,28 @@ function renderClipItem(clip) {
 
   const phrase = clip.nome || '';
   const { ipa, br, connectedBr } = getPhrasePhonetics(phrase);
-  const cs = (clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide))
-    ? clip.connected_speech
-    : analyzeConnectedSpeech(phrase);
+
+  const isCorrupt = (clip.fonetica_br && (
+    clip.fonetica_br.includes('tchôud') ||
+    clip.fonetica_br.includes('djirlfriend') ||
+    clip.fonetica_br.includes('uelkôum') ||
+    clip.fonetica_br.includes('monêi')
+  )) || (clip.fonetica_connected && (
+    clip.fonetica_connected.includes('TCHÔUD') ||
+    clip.fonetica_connected.includes('DJIRLFRIEND') ||
+    clip.fonetica_connected.includes('UELKÔUM') ||
+    clip.fonetica_connected.includes('MONÊI')
+  ));
+
+  const hasValidGuide = clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide) && clip.connected_speech.soundGuide.length > 0;
+  const cs = (!isCorrupt && hasValidGuide) ? clip.connected_speech : analyzeConnectedSpeech(phrase);
+
+  const displayIpa = (!isCorrupt && clip.fonetica_ipa) ? clip.fonetica_ipa : ipa;
+  const displayBr = (!isCorrupt && clip.fonetica_br) ? clip.fonetica_br : br;
+  const displayConnected = (!isCorrupt && clip.fonetica_connected) ? clip.fonetica_connected : (connectedBr || br);
+
+  const teacherData = cs.teacherNotes || {};
+  const notes = Array.isArray(teacherData) ? teacherData : (teacherData.notes || []);
 
   return `
     <div class="clip-item ${isActive ? 'active-clip' : ''}" data-clip-id="${clip.id}" style="display: flex; flex-direction: column; gap: 6px; padding: 12px;">
@@ -503,20 +522,38 @@ function renderClipItem(clip) {
             <span class="clip-name" style="font-weight: 700; color: #fff; font-size: 14px;">${escapeHtml(phrase || 'Trecho sem nome')}</span>
           </div>
 
-          ${(ipa || br) ? `
+          ${(displayIpa || displayBr) ? `
             <div style="margin-top: 4px; font-size: 12px; line-height: 1.4; display: flex; flex-direction: column; gap: 2px;">
-              ${ipa ? `<span style="color: var(--accent-secondary); font-family: monospace; font-size: 11px;">${escapeHtml(ipa)}</span>` : ''}
-              ${br ? `<span style="color: #fbbf24; font-style: italic;">${escapeHtml(br)}</span>` : ''}
-              ${(connectedBr && connectedBr !== br) ? `
-                <span style="color: #38bdf8; font-weight: 700; font-size: 12px;">🗣️ ${escapeHtml(connectedBr)}</span>
+              ${displayIpa ? `<span style="color: var(--accent-secondary); font-family: monospace; font-size: 11px;">${escapeHtml(displayIpa)}</span>` : ''}
+              ${displayBr ? `<span style="color: #fbbf24; font-style: italic;">${escapeHtml(displayBr)}</span>` : ''}
+              ${(displayConnected && displayConnected !== displayBr) ? `
+                <span style="color: #38bdf8; font-weight: 700; font-size: 12px;">🗣️ ${escapeHtml(displayConnected)}</span>
               ` : ''}
             </div>
           ` : ''}
 
           ${cs.hasConnections ? `
-            <div style="margin-top: 4px; font-size: 11px; line-height: 1.5; color: #e2e8f0; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.04);">
-              ${cs.soundGuide.map(g => `<span style="color:#fbbf24; font-weight:700; margin-right:8px; display:inline-block;">• ${escapeHtml(g.words)} ➔ "${escapeHtml(g.sound)}"</span>`).join('')}
-            </div>
+            <details style="margin-top: 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); overflow: hidden;">
+              <summary style="padding: 4px 8px; font-size: 11px; font-weight: 700; color: #fbbf24; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+                <span>👨‍🏫 Lousa do Professor (${cs.soundGuide.length} junções)</span>
+                <span style="font-size: 10px; color: var(--text-muted);">▾</span>
+              </summary>
+              <div style="padding: 6px 8px; font-size: 11px; line-height: 1.45; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;">
+                  ${cs.soundGuide.map(g => `
+                    <span style="background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.25); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: 700;">
+                      ${escapeHtml(g.words)} ➔ "${escapeHtml(g.sound)}"
+                    </span>
+                  `).join('')}
+                </div>
+                ${notes.map(n => `
+                  <div style="margin-bottom: 4px; color: #cbd5e1;">
+                    <strong style="color: #f8fafc;">${escapeHtml(n.title)}:</strong>
+                    <span style="color: #94a3b8;"> ${escapeHtml(n.text)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </details>
           ` : ''}
 
           <div class="clip-time" style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">

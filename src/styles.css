@@ -1962,3 +1962,195 @@ textarea.input {
   margin-top: 2px;
 }
 
+/* --- 👨‍🏫 Lousa do Professor (Mecânica da Fala) --- */
+.teacher-blackboard-details {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: var(--radius-lg);
+  margin-top: 10px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  text-align: left;
+}
+
+.teacher-blackboard-details:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.teacher-blackboard-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  background: rgba(30, 41, 59, 0.55);
+  transition: background 0.2s ease;
+}
+
+.teacher-blackboard-summary::-webkit-details-marker {
+  display: none;
+}
+
+.teacher-blackboard-details[open] .teacher-blackboard-summary {
+  background: rgba(30, 41, 59, 0.85);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.teacher-blackboard-details[open] .teacher-accordion-chevron {
+  transform: rotate(180deg);
+}
+
+.teacher-accordion-chevron {
+  transition: transform 0.2s ease;
+}
+
+.teacher-blackboard-content {
+  padding: 14px 16px;
+  background: radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.blackboard-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--accent-secondary);
+  margin-bottom: 6px;
+}
+
+/* Visual diagram pill flow */
+.blackboard-flow-diagram {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+}
+
+.diagram-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+}
+
+.diagram-item.item-linking {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.diagram-item.item-elision {
+  border-color: rgba(244, 63, 94, 0.35);
+  background: rgba(244, 63, 94, 0.08);
+}
+
+.diagram-item.item-flap {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.diagram-item.item-assimilation {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.diagram-item.item-trap {
+  border-color: rgba(249, 115, 22, 0.35);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.diagram-word {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.diagram-connector {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.diagram-result {
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+/* Mechanical anatomy list cards */
+.blackboard-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blackboard-note-card {
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid var(--accent-secondary);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.blackboard-note-card.card-elision {
+  border-left-color: #f43f5e;
+}
+
+.blackboard-note-card.card-linking {
+  border-left-color: #38bdf8;
+}
+
+.blackboard-note-card.card-flap {
+  border-left-color: #fbbf24;
+}
+
+.blackboard-note-card.card-assimilation {
+  border-left-color: #a855f7;
+}
+
+.blackboard-note-card.card-trap {
+  border-left-color: #f97316;
+}
+
+.blackboard-note-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 3px;
+}
+
+.blackboard-note-text {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Shadowing Tip Box */
+.blackboard-shadowing-tip {
+  padding: 8px 12px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: var(--radius-md);
+}
+

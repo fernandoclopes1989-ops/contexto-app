@@ -666,37 +666,132 @@ function updateConnectedSpeechUI(clip) {
 
   // 1. Get full 3-tier phonetic data (IPA, word-by-word, and connected speech flow)
   const { ipa, br, connectedBr } = getPhrasePhonetics(phrase);
-  const cs = (clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide))
+
+  // Check for any corrupt or outdated legacy records (e.g. tchôud, djirlfriend, uelkôum, monêi)
+  const isCorrupt = (clip.fonetica_br && (
+    clip.fonetica_br.includes('tchôud') ||
+    clip.fonetica_br.includes('djirlfriend') ||
+    clip.fonetica_br.includes('uelkôum') ||
+    clip.fonetica_br.includes('monêi')
+  )) || (clip.fonetica_connected && (
+    clip.fonetica_connected.includes('TCHÔUD') ||
+    clip.fonetica_connected.includes('DJIRLFRIEND') ||
+    clip.fonetica_connected.includes('UELKÔUM') ||
+    clip.fonetica_connected.includes('MONÊI')
+  ));
+
+  const hasValidGuide = clip.connected_speech && Array.isArray(clip.connected_speech.soundGuide) && clip.connected_speech.soundGuide.length > 0;
+
+  const cs = (!isCorrupt && hasValidGuide)
     ? clip.connected_speech
     : analyzeConnectedSpeech(phrase);
 
-  if (ipaEl) ipaEl.textContent = ipa || '—';
-  if (brEl) brEl.textContent = br || '—';
-  if (connectedEl) {
-    connectedEl.textContent = connectedBr || br || '—';
+  // Auto-purify in memory
+  if (isCorrupt || !hasValidGuide) {
+    clip.fonetica_ipa = ipa;
+    clip.fonetica_br = br;
+    clip.fonetica_connected = connectedBr;
+    clip.connected_speech = cs;
   }
 
-  // 2. Render didactic guide explaining word connections
+  if (ipaEl) ipaEl.textContent = (!isCorrupt && clip.fonetica_ipa) ? clip.fonetica_ipa : (ipa || '—');
+  if (brEl) brEl.textContent = (!isCorrupt && clip.fonetica_br) ? clip.fonetica_br : (br || '—');
+  if (connectedEl) {
+    connectedEl.textContent = (!isCorrupt && clip.fonetica_connected) ? clip.fonetica_connected : (connectedBr || br || '—');
+  }
+
+  // 2. 👨‍🏫 Render Collapsible "Lousa do Professor (Mecânica da Fala)"
+  // Zero UI pollution: starts collapsed (~38px) and only expands on user demand
   if (guideEl) {
-    if (cs.soundGuide && cs.soundGuide.length > 0) {
-      guideEl.innerHTML = `
-        <div class="cs-sound-guide-container">
-          <div class="cs-sound-guide-title">
-            <span>💡</span> <span>Entenda as Junções Desta Frase:</span>
-          </div>
-          ${cs.soundGuide.map(item => `
-            <div class="cs-guide-row">
-              <span class="cs-guide-words">${escapeHtml(item.words)}</span>
-              <span class="cs-guide-arrow">➔</span>
-              <span class="cs-guide-sound">"${escapeHtml(item.sound)}"</span>
-              <span class="cs-guide-detail">(${escapeHtml(item.detail)})</span>
-            </div>
-          `).join('')}
+    const soundGuide = cs.soundGuide || [];
+    const teacherData = cs.teacherNotes || {};
+    const notes = Array.isArray(teacherData) ? teacherData : (teacherData.notes || []);
+    const shadowingTip = (!Array.isArray(teacherData) && teacherData.shadowingTip)
+      ? teacherData.shadowingTip
+      : 'No Shadowing, solte o ar continuamente nas junções conectadas e dê ênfase nas sílabas em MAIÚSCULAS!';
+
+    const guideCount = soundGuide.length;
+
+    // Generate visual flow diagram items
+    const diagramHtml = notes.map(n => {
+      if (!n.diagram) return '';
+      const d = n.diagram;
+      const typeClass = `item-${d.type || 'linking'}`;
+      return `
+        <div class="diagram-item ${typeClass}">
+          <span class="diagram-word">${escapeHtml(d.left)}</span>
+          <span class="diagram-connector">${escapeHtml(d.action)}</span>
+          ${d.right ? `<span class="diagram-word">${escapeHtml(d.right)}</span>` : ''}
+          <span style="opacity: 0.5;">➔</span>
+          <span class="diagram-result">"${escapeHtml(d.result)}"</span>
         </div>
       `;
-    } else {
-      guideEl.innerHTML = '';
-    }
+    }).filter(Boolean).join('');
+
+    // Generate mechanical speech cards
+    const cardsHtml = notes.map(n => {
+      const cardTypeClass = `card-${n.type || 'linking'}`;
+      return `
+        <div class="blackboard-note-card ${cardTypeClass}">
+          <div class="blackboard-note-title">${escapeHtml(n.title)}</div>
+          <p class="blackboard-note-text">${escapeHtml(n.text)}</p>
+        </div>
+      `;
+    }).join('');
+
+    guideEl.innerHTML = `
+      <details class="teacher-blackboard-details">
+        <summary class="teacher-blackboard-summary">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">👨‍🏫</span>
+            <span style="font-weight: 800; color: #f8fafc; font-size: 13px; letter-spacing: 0.2px;">Lousa do Professor (Mecânica da Fala)</span>
+            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 10px; padding: 2px 8px; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 999px;">
+              💡 ${guideCount} ${guideCount === 1 ? 'Junção' : 'Junções'}
+            </span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--accent-secondary); font-weight: 700;">
+            <span>Explicar</span>
+            <span class="teacher-accordion-chevron">▾</span>
+          </div>
+        </summary>
+
+        <div class="teacher-blackboard-content">
+          ${diagramHtml ? `
+            <div>
+              <div class="blackboard-section-header">
+                <span>📐</span> <span>Diagrama Visual de Junções:</span>
+              </div>
+              <div class="blackboard-flow-diagram">
+                ${diagramHtml}
+              </div>
+            </div>
+          ` : ''}
+
+          <div>
+            <div class="blackboard-section-header">
+              <span>🔬</span> <span>Anatomia Física: O que a língua e a boca fazem</span>
+            </div>
+            <div class="blackboard-cards-grid">
+              ${cardsHtml || `
+                <div class="blackboard-note-card card-linking">
+                  <div class="blackboard-note-title">🗣️ Articulação Fluida Americana</div>
+                  <p class="blackboard-note-text">Nesta frase as palavras fluem naturalmente. Conecte o ar entre cada palavra sem fazer pausas mecânicas.</p>
+                </div>
+              `}
+            </div>
+          </div>
+
+          <div class="blackboard-shadowing-tip">
+            <div style="font-size: 11px; font-weight: 800; color: #fbbf24; display: flex; align-items: center; gap: 5px; margin-bottom: 3px;">
+              <span>🎯</span> <span>Dica de Ouro para o Shadowing:</span>
+            </div>
+            <p style="margin: 0; font-size: 11.5px; color: #e2e8f0; line-height: 1.45;">
+              ${escapeHtml(shadowingTip)}
+            </p>
+          </div>
+        </div>
+      </details>
+    `;
   }
 
   // 3. Sync Badge

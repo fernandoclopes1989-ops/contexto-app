@@ -4,6 +4,7 @@
 
 import { getSetting, setSetting, getAllVideos, getAllVocabulario, getAllRevisao, getAll, reinitSupabase, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY } from '../db.js';
 import { showToast, escapeHtml } from '../utils.js';
+import { getPhrasePhonetics, analyzeConnectedSpeech } from '../services/phoneticService.js';
 
 export async function renderSettings(container) {
   const apiKey = await getSetting('gemini_api_key') || '';
@@ -97,10 +98,100 @@ CREATE TABLE vocabulario ( id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), video
 CREATE TABLE revisao ( id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), vocabulario_id UUID REFERENCES vocabulario(id) ON DELETE CASCADE UNIQUE, intervalo_dias NUMERIC DEFAULT 1, fator_facilidade NUMERIC DEFAULT 2.5, proxima_revisao DATE, ultima_resposta TEXT, total_revisoes NUMERIC DEFAULT 0 );
 CREATE TABLE study_log ( date DATE PRIMARY KEY );
         </div>
-      </div>
     </div>
 
-    <!-- Data Summary -->
+    <!-- Phonetic Conversion Matrix (Transparency & Governance) -->
+    <div class="settings-section">
+      <div class="settings-section-title">🛡️ Matriz de Conversão Fonética Obrigatória (Regras Ativas)</div>
+      <div class="settings-card">
+        <p class="text-sm text-muted mb-3" style="line-height: 1.5;">
+          Esta matriz define as <strong>regras rígidas de fonologia do inglês americano</strong> aplicadas tanto no motor offline quanto no sincronizador da nuvem. O objetivo é eliminar o "abrasileiramento" literal de letras e guiar a memória muscular para o som nativo real.
+        </p>
+
+        <!-- Rules Matrix Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: var(--space-4);">
+          
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #fbbf24; font-size: 13px; margin-bottom: 4px;">1. Vogal Curta / Schwa (/ʌ/ e /ə/)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">O inglês americano reduz vogais átonas para o som de <strong>"â"</strong> (nunca som aberto de 'o' ou 'u').</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • money ➔ mâni (não "monêi")<br>
+              • come ➔ kâm | some ➔ sâm<br>
+              • welcome ➔ uélkâm (não "uelkôum")<br>
+              • up ➔ âp | but ➔ bât
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #34d399; font-size: 13px; margin-bottom: 4px;">2. Consoante 'G' Duro vs. /dʒ/</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Palavras de raiz germânica mantêm o <strong>G duro (/ɡ/)</strong>. Proibido transformar em "dj".</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • girlfriend ➔ gârlfrend (não "djirlfriend")<br>
+              • get ➔ guét | give ➔ guív<br>
+              • Just ➔ djâst | Job ➔ djób (aqui sim é /dʒ/)
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #a78bfa; font-size: 13px; margin-bottom: 4px;">3. Consoante /ʃ/ (SH) vs. /tʃ/ (CH)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">O fonema <strong>/ʃ/</strong> soa suave como em "chá". O fonema <strong>/tʃ/</strong> soa africado como em "tchau".</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • showed ➔ chôud (proibido "tchôud")<br>
+              • she ➔ chí | should ➔ chúd<br>
+              • much ➔ mâtch | catch ➔ kétch
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #f43f5e; font-size: 13px; margin-bottom: 4px;">4. Passado Regular em "-ed" (Regra Tripla)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Som final estritamente nativo. <strong>Zero vogais fantasmas</strong> (nunca gerar "lúkedi").</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • looked ➔ lúkt (após som surdo)<br>
+              • showed ➔ chôud (após som sonoro)<br>
+              • wanted ➔ uóntid (após som de t/d)
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 13px; margin-bottom: 4px;">5. Letras Mudas (Silent Letters)</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Consoantes não pronunciadas são 100% omitidas para não enganar a boca do estudante.</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • half ➔ réf (L mudo)<br>
+              • talk ➔ tók | walk ➔ uók (L mudo)<br>
+              • could ➔ kúd | knife ➔ náif (K mudo)<br>
+              • Christmas ➔ krísmes (T mudo)
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); padding: 12px;">
+            <div style="font-weight: 700; color: #ec4899; font-size: 13px; margin-bottom: 4px;">6. Regra de Ouro do Connected Speech</div>
+            <p class="text-xs text-muted" style="line-height: 1.4; margin-bottom: 6px;">Zero hífens. Blocos fundidos com MAIÚSCULAS na tônica para marcar a batida do ritmo.</p>
+            <div style="font-size: 11px; font-family: monospace; color: #38bdf8; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+              • if I ➔ iFAI<br>
+              • showed up ➔ CHOUDâp<br>
+              • welcome in ➔ uélkâMIN<br>
+              • wouldn't be ➔ uúdnBÍ
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Interactive Phonetic Tester -->
+        <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: var(--space-4);">
+          <strong style="font-size: 13px; color: #fff; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+            <span>🔬</span> <span>Testador ao Vivo da Matriz Fonética:</span>
+          </strong>
+          <p class="text-xs text-muted mb-3">Digite qualquer frase em inglês para auditar instantaneamente o resultado do motor com as regras ativas:</p>
+          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <input type="text" id="phonetic-test-input" class="input" placeholder="Ex: If I showed up here with my new girlfriend..." value="If I showed up here with my new girlfriend, she wouldn't be welcome in" style="flex: 1;" />
+            <button id="btn-test-phonetics" class="btn btn-primary" style="white-space: nowrap;">⚡ Auditar Frase</button>
+          </div>
+          <div id="phonetic-test-output" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; font-size: 12px; display: none;">
+            <!-- Output dynamically generated -->
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="settings-section">
       <div class="settings-section-title">📊 Seus dados</div>
       <div class="settings-card">
@@ -190,6 +281,59 @@ function setupSettingsListeners(container) {
     const input = container.querySelector('#api-key-input');
     input.type = input.type === 'password' ? 'text' : 'password';
   });
+
+  // Test Phonetic Conversion Matrix live
+  const btnTestPhonetics = container.querySelector('#btn-test-phonetics');
+  const testInput = container.querySelector('#phonetic-test-input');
+  const testOutput = container.querySelector('#phonetic-test-output');
+  if (btnTestPhonetics && testInput && testOutput) {
+    const runPhoneticTest = () => {
+      const phrase = testInput.value.trim();
+      if (!phrase) {
+        testOutput.style.display = 'none';
+        return;
+      }
+      const p = getPhrasePhonetics(phrase);
+      const cs = analyzeConnectedSpeech(phrase);
+      testOutput.style.display = 'block';
+      testOutput.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div>
+            <span style="font-size: 10px; font-weight: 800; color: var(--accent-secondary); text-transform: uppercase;">1. Transcrição IPA Oficial:</span>
+            <div style="font-family: monospace; font-size: 13px; color: var(--accent-secondary); margin-top: 2px;">${escapeHtml(p.ipa || '—')}</div>
+          </div>
+          <div>
+            <span style="font-size: 10px; font-weight: 800; color: #fbbf24; text-transform: uppercase;">2. Palavra a Palavra (Regras da Matriz):</span>
+            <div style="font-size: 13px; color: #fbbf24; font-style: italic; margin-top: 2px;">${escapeHtml(p.br || '—')}</div>
+          </div>
+          <div>
+            <span style="font-size: 10px; font-weight: 800; color: #67e8f9; text-transform: uppercase;">3. Como Soa na Fala Real (Connected Speech):</span>
+            <div style="font-size: 14px; font-weight: 800; color: #67e8f9; margin-top: 2px;">${escapeHtml(p.connectedBr || '—')}</div>
+          </div>
+          ${cs.soundGuide && cs.soundGuide.length > 0 ? `
+            <div style="margin-top: 4px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.1);">
+              <span style="font-size: 10px; font-weight: 800; color: #34d399; text-transform: uppercase;">4. Junções e Atalhos Sonoros Detectados (${cs.soundGuide.length}):</span>
+              <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                ${cs.soundGuide.map(g => `
+                  <div style="font-size: 11px; color: #e2e8f0; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 4px;">
+                    <strong style="color: #fbbf24;">${escapeHtml(g.words)}</strong> ➔ <span style="color: #38bdf8; font-weight: 700;">"${escapeHtml(g.sound)}"</span>
+                    <span style="color: var(--text-muted); font-size: 10px;"> (${escapeHtml(g.detail)})</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Nenhuma emenda complexa nesta frase isolada.</div>
+          `}
+        </div>
+      `;
+    };
+
+    btnTestPhonetics.addEventListener('click', runPhoneticTest);
+    testInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runPhoneticTest();
+    });
+  }
 
   // Export data
   container.querySelector('#export-data').addEventListener('click', async () => {
